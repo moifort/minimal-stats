@@ -18,23 +18,24 @@ The app starts automatically at login and runs silently in the background with n
 
 ## Install
 
+### Download
+
+1. Go to the [latest release](https://github.com/moifort/minimal-stats/releases/latest)
+2. Download `Stats.app.zip`
+3. Unzip and move `Stats.app` to your Applications folder
+4. Open it — if macOS blocks it, go to **System Settings > Privacy & Security** and click **Open Anyway**
+
 ### From source
 
 Requires Xcode command line tools and macOS 14+.
 
 ```sh
-git clone https://github.com/your-username/stats.git
-cd stats
+git clone https://github.com/moifort/minimal-stats.git
+cd minimal-stats
 make install
 ```
 
 This builds the app and copies it to `/Applications`.
-
-Then open it from your Applications folder or with:
-
-```sh
-open /Applications/Stats.app
-```
 
 ### Uninstall
 
