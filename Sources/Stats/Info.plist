@@ -4,9 +4,21 @@
 <dict>
     <key>CFBundleName</key>
     <string>Stats</string>
+    <key>CFBundleDisplayName</key>
+    <string>Stats</string>
     <key>CFBundleIdentifier</key>
     <string>com.stats.menubar</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>Stats</string>
     <key>LSUIElement</key>
     <true/>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
 </dict>
 </plist>

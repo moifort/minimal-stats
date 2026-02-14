@@ -1,0 +1,25 @@
+APP_NAME = Stats
+BUILD_DIR = .build/release
+APP_BUNDLE = $(APP_NAME).app
+CONTENTS = $(APP_BUNDLE)/Contents
+MACOS = $(CONTENTS)/MacOS
+
+.PHONY: build bundle install clean
+
+build:
+	swift build -c release
+
+bundle: build
+	rm -rf $(APP_BUNDLE)
+	mkdir -p $(MACOS)
+	cp $(BUILD_DIR)/$(APP_NAME) $(MACOS)/$(APP_NAME)
+	cp Sources/Stats/Info.plist $(CONTENTS)/Info.plist
+
+install: bundle
+	rm -rf /Applications/$(APP_BUNDLE)
+	cp -r $(APP_BUNDLE) /Applications/$(APP_BUNDLE)
+	@echo "Installed to /Applications/$(APP_BUNDLE)"
+
+clean:
+	rm -rf $(APP_BUNDLE)
+	swift package clean
