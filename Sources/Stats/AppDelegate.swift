@@ -8,23 +8,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let stats = SystemStats()
     private var timer: Timer?
 
-    private var buttonHostingView: NSHostingView<CPULineChartView>?
-    private var chartView = CPULineChartView(history: [])
+    private var hostingView: NSHostingView<StatusBarView>?
+    private var statusBarView = StatusBarView(cpuHistory: [], diskUsedFraction: 0)
 
     // MARK: – Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = NSStatusBar.system.statusItem(withLength: 35)
+        statusItem = NSStatusBar.system.statusItem(withLength: 64)
 
         if let button = statusItem.button {
             button.target = self
             button.action = #selector(openActivityMonitor)
-            let hostingView = NSHostingView(rootView: chartView)
-            hostingView.frame = NSRect(x: 0, y: 0, width: 35, height: 22)
+            let view = NSHostingView(rootView: statusBarView)
+            view.frame = NSRect(x: 0, y: 0, width: 64, height: 22)
             button.subviews.forEach { $0.removeFromSuperview() }
-            button.addSubview(hostingView)
-            button.frame = hostingView.frame
-            buttonHostingView = hostingView
+            button.addSubview(view)
+            button.frame = view.frame
+            hostingView = view
         }
 
         // Seed the delta-based CPU metric with an initial reading
@@ -46,12 +46,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func tick() {
         _ = stats.refresh()
-        chartView.history = stats.cpuHistory
-        buttonHostingView?.rootView = chartView
+        statusBarView.cpuHistory = stats.cpuHistory
+        if stats.diskTotal > 0 {
+            statusBarView.diskUsedFraction = Double(stats.diskUsed) / Double(stats.diskTotal)
+        }
+        hostingView?.rootView = statusBarView
     }
 }
 
-// MARK: – SwiftUI Chart View
+// MARK: – Combined Status Bar View
+
+struct StatusBarView: View {
+    var cpuHistory: [Double]
+    var diskUsedFraction: Double
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CPULineChartView(history: cpuHistory)
+            DiskPieChartView(usedFraction: diskUsedFraction)
+        }
+    }
+}
+
+// MARK: – CPU Chart View
 
 struct CPULineChartView: View {
     var history: [Double]
@@ -87,5 +104,22 @@ struct CPULineChartView: View {
             plotArea.background(.clear)
         }
         .frame(width: 35, height: 18)
+    }
+}
+
+// MARK: – Disk Pie Chart View
+
+struct DiskPieChartView: View {
+    var usedFraction: Double
+
+    var body: some View {
+        Chart {
+            SectorMark(angle: .value("Used", usedFraction), innerRadius: .ratio(0))
+                .foregroundStyle(Color.primary)
+            SectorMark(angle: .value("Free", 1 - usedFraction), innerRadius: .ratio(0))
+                .foregroundStyle(Color.primary.opacity(0.2))
+        }
+        .chartLegend(.hidden)
+        .frame(width: 14, height: 14)
     }
 }

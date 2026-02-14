@@ -11,15 +11,30 @@ final class SystemStats {
     private(set) var cpuHistory: [Double] = []
     private let maxHistoryCount = 150
 
+    /// Disk space in bytes
+    private(set) var diskUsed: Int64 = 0
+    private(set) var diskTotal: Int64 = 0
+
     // MARK: – Public
 
     func refresh() -> Double {
+        readDisk()
         let cpu = readCPU()
         cpuHistory.append(cpu)
         if cpuHistory.count > maxHistoryCount {
             cpuHistory.removeFirst(cpuHistory.count - maxHistoryCount)
         }
         return cpu
+    }
+
+    // MARK: – Disk
+
+    private func readDisk() {
+        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
+              let total = attrs[.systemSize] as? Int64,
+              let free = attrs[.systemFreeSize] as? Int64 else { return }
+        diskTotal = total
+        diskUsed = total - free
     }
 
     // MARK: – CPU
