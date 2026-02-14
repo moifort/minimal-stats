@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Charts
+import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
@@ -26,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.frame = view.frame
             hostingView = view
         }
+
+        // Register as login item
+        try? SMAppService.mainApp.register()
 
         // Seed the delta-based CPU metric with an initial reading
         _ = stats.refresh()
