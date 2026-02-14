@@ -14,13 +14,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: – Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = NSStatusBar.system.statusItem(withLength: 109)
+        statusItem = NSStatusBar.system.statusItem(withLength: 113)
 
         if let button = statusItem.button {
             button.target = self
             button.action = #selector(openActivityMonitor)
             let view = NSHostingView(rootView: statusBarView)
-            view.frame = NSRect(x: 0, y: 0, width: 109, height: 22)
+            view.frame = NSRect(x: 0, y: 0, width: 113, height: 22)
             button.subviews.forEach { $0.removeFromSuperview() }
             button.addSubview(view)
             button.frame = view.frame
@@ -201,6 +201,6 @@ struct DiskPieChartView: View {
                 .foregroundStyle(Color.primary.opacity(0.2))
         }
         .chartLegend(.hidden)
-        .frame(width: 14, height: 14)
+        .frame(width: 18, height: 18)
     }
 }
