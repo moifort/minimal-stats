@@ -17,7 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: 35)
 
         if let button = statusItem.button {
-            button.isEnabled = false
+            button.target = self
+            button.action = #selector(openActivityMonitor)
             let hostingView = NSHostingView(rootView: chartView)
             hostingView.frame = NSRect(x: 0, y: 0, width: 35, height: 22)
             button.subviews.forEach { $0.removeFromSuperview() }
@@ -35,6 +36,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
             self?.tick()
         }
+    }
+
+    @objc private func openActivityMonitor() {
+        NSWorkspace.shared.launchApplication("Activity Monitor")
     }
 
     // MARK: – Update
