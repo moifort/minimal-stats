@@ -8,23 +8,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let stats = SystemStats()
     private var timer: Timer?
+    private var usageTimer: Timer?
 
     private var hostingView: NSHostingView<StatusBarView>?
     private var statusBarView = StatusBarView(cpuHistory: [], diskUsedFraction: 0, netInHistory: [], netOutHistory: [])
 
+    private var usageTracker: UsageTracker?
+    private var panel: NSPanel?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
+
     // MARK: – Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = NSStatusBar.system.statusItem(withLength: 113)
+        let claudeExists = FileManager.default.fileExists(
+            atPath: FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".claude").path
+        )
+
+        let barWidth: CGFloat = claudeExists ? 133 : 113
+
+        if claudeExists {
+            let tracker = UsageTracker()
+            if let saved = UserDefaults.standard.string(forKey: "planType"),
+               let plan = PlanType(rawValue: saved) {
+                tracker.planType = plan
+            }
+            usageTracker = tracker
+        }
+
+        statusItem = NSStatusBar.system.statusItem(withLength: barWidth)
 
         if let button = statusItem.button {
             button.target = self
-            button.action = #selector(openActivityMonitor)
+            button.action = #selector(togglePopover)
             let view = NSHostingView(rootView: statusBarView)
-            view.frame = NSRect(x: 0, y: 0, width: 113, height: 22)
+            view.frame = NSRect(x: 0, y: 0, width: barWidth, height: 22)
             button.subviews.forEach { $0.removeFromSuperview() }
             button.addSubview(view)
-            button.frame = view.frame
+            button.frame.size = view.frame.size
             hostingView = view
         }
 
@@ -40,13 +62,138 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
             self?.tick()
         }
+
+        if usageTracker != nil {
+            usageTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+                self?.refreshUsage()
+            }
+            refreshUsage()
+        }
     }
 
     @objc private func openActivityMonitor() {
-        NSWorkspace.shared.launchApplication("Activity Monitor")
+        let url = URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app")
+        NSWorkspace.shared.openApplication(at: url, configuration: .init())
+    }
+
+    // MARK: – Panel
+
+    @objc private func togglePopover() {
+        if panel != nil {
+            closePanel()
+            return
+        }
+
+        let snapshot = usageTracker?.refresh()
+
+        let contentView = PopoverView(
+            snapshot: snapshot,
+            onPlanChange: { [weak self] newPlan in
+                self?.usageTracker?.planType = newPlan
+                UserDefaults.standard.set(newPlan.rawValue, forKey: "planType")
+                self?.refreshUsage()
+            },
+            onOpenActivityMonitor: { [weak self] in
+                self?.closePanel()
+                let url = URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app")
+                NSWorkspace.shared.openApplication(at: url, configuration: .init())
+            },
+            onQuit: {
+                NSApplication.shared.terminate(nil)
+            },
+            onUninstall: { [weak self] in
+                self?.closePanel()
+                self?.performUninstall()
+            }
+        )
+
+        let controller = NSHostingController(rootView: contentView)
+        let contentSize = controller.view.fittingSize
+
+        let p = NSPanel(
+            contentRect: NSRect(origin: .zero, size: contentSize),
+            styleMask: [.nonactivatingPanel, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        p.isFloatingPanel = true
+        p.level = .popUpMenu
+        p.isOpaque = false
+        p.backgroundColor = .clear
+        p.hasShadow = true
+        p.titleVisibility = .hidden
+        p.titlebarAppearsTransparent = true
+
+        let visualEffect = NSVisualEffectView(frame: NSRect(origin: .zero, size: contentSize))
+        visualEffect.material = .menu
+        visualEffect.state = .active
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 10
+        visualEffect.layer?.masksToBounds = true
+
+        controller.view.frame = visualEffect.bounds
+        controller.view.autoresizingMask = [.width, .height]
+        visualEffect.addSubview(controller.view)
+        p.contentView = visualEffect
+
+        // Position flush below the status bar button, right-aligned
+        if let button = statusItem.button,
+           let buttonWindow = button.window {
+            let rectInWindow = button.convert(button.bounds, to: nil)
+            let screenRect = buttonWindow.convertToScreen(rectInWindow)
+            let x = screenRect.maxX - contentSize.width
+            let y = screenRect.minY - contentSize.height
+            p.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+
+        p.makeKeyAndOrderFront(nil)
+        panel = p
+
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.closePanel()
+        }
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            if let self = self, event.window != self.panel,
+               event.window != self.statusItem.button?.window {
+                self.closePanel()
+            }
+            return event
+        }
+    }
+
+    private func closePanel() {
+        panel?.close()
+        panel = nil
+        if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
+        if let m = localMonitor { NSEvent.removeMonitor(m); localMonitor = nil }
+    }
+
+    private func performUninstall() {
+        let alert = NSAlert()
+        alert.messageText = "Uninstall Stats?"
+        alert.informativeText = "This will remove the login item and move the app to the Trash."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Uninstall")
+        alert.addButton(withTitle: "Cancel")
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        try? SMAppService.mainApp.unregister()
+
+        let appURL = Bundle.main.bundleURL
+        NSWorkspace.shared.recycle([appURL]) { _, _ in
+            NSApplication.shared.terminate(nil)
+        }
     }
 
     // MARK: – Update
+
+    private func refreshUsage() {
+        guard let tracker = usageTracker else { return }
+        let snapshot = tracker.refresh()
+        statusBarView.claudeUsageFraction = snapshot.fraction
+        hostingView?.rootView = statusBarView
+    }
 
     private func tick() {
         _ = stats.refresh()
@@ -67,13 +214,35 @@ struct StatusBarView: View {
     var diskUsedFraction: Double
     var netInHistory: [Double]
     var netOutHistory: [Double]
+    var claudeUsageFraction: Double?
 
     var body: some View {
         HStack(spacing: 10) {
             CPULineChartView(history: cpuHistory)
             NetworkChartView(inHistory: netInHistory, outHistory: netOutHistory)
             DiskPieChartView(usedFraction: diskUsedFraction)
+            if let fraction = claudeUsageFraction {
+                ClaudeUsageBarView(fraction: fraction)
+            }
         }
+    }
+}
+
+// MARK: – Claude Usage Bar View
+
+struct ClaudeUsageBarView: View {
+    var fraction: Double
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.primary.opacity(0.15))
+                .frame(width: 6, height: 18)
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.primary)
+                .frame(width: 6, height: max(CGFloat(fraction) * 18, fraction > 0 ? 2 : 0))
+        }
+        .frame(width: 8, height: 22)
     }
 }
 
