@@ -24,7 +24,10 @@ The app starts automatically at login and runs silently in the background with n
 1. Go to the [latest release](https://github.com/moifort/minimal-stats/releases/latest)
 2. Download `Stats.app.zip`
 3. Unzip and move `Stats.app` to your Applications folder
-4. Open it — if macOS blocks it, go to **System Settings > Privacy & Security** and click **Open Anyway**
+4. Since the app is not notarized, macOS will block it on first launch. Use one of these methods to open it:
+   - **Right-click > Open** — right-click the app, select Open, then click Open in the dialog
+   - **System Settings** — go to **Privacy & Security**, scroll down, and click **Open Anyway**
+   - **Terminal** — run `xattr -cr /Applications/Stats.app` then open normally
 
 ### From source
 

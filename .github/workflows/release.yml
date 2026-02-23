@@ -14,8 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build release
-        run: make bundle
+      - name: Build and sign
+        run: make sign
+
+      - name: Verify signature
+        run: codesign --verify --deep --strict Stats.app
 
       - name: Zip app
         run: ditto -c -k --keepParent Stats.app Stats.app.zip
