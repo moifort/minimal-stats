@@ -73,6 +73,11 @@ struct PopoverView: View {
                 Divider().padding(.vertical, 8)
             }
             actionsSection
+            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 4)
         }
         .padding(12)
         .frame(width: 220)
