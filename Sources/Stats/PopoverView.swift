@@ -41,11 +41,8 @@ struct PopoverView: View {
     }
 
     private var timeRemainingText: String {
-        guard let snapshot = snapshot,
-              let oldest = snapshot.oldestMessageInWindow else { return "" }
-        let now = Date()
-        let resetTime = oldest.addingTimeInterval(5 * 3600)
-        let remaining = resetTime.timeIntervalSince(now)
+        guard let snapshot = snapshot else { return "" }
+        let remaining = snapshot.nextReset.timeIntervalSince(Date())
 
         if remaining <= 0 {
             return ""
@@ -157,7 +154,7 @@ struct PopoverView_Previews: PreviewProvider {
                 fraction: 0.75,
                 windowStart: Date().addingTimeInterval(-3 * 3600),
                 planType: .max20x,
-                oldestMessageInWindow: Date().addingTimeInterval(-2 * 3600)
+                nextReset: Date().addingTimeInterval(2 * 3600)
             )
         )
     }

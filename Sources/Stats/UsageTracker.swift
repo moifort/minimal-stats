@@ -7,9 +7,9 @@ enum PlanType: String, CaseIterable {
 
     var outputTokenLimit: Int {
         switch self {
-        case .pro: return 19_000
-        case .max5x: return 88_000
-        case .max20x: return 220_000
+        case .pro: return 28_000
+        case .max5x: return 142_000
+        case .max20x: return 565_000
         }
     }
 }
@@ -22,11 +22,13 @@ struct UsageSnapshot {
     var fraction: Double = 0
     var windowStart: Date = Date()
     var planType: PlanType = .max20x
-    var oldestMessageInWindow: Date?
+    var nextReset: Date = Date()
 }
 
 final class UsageTracker {
     private let windowDuration: TimeInterval = 5 * 3600 // 5 hours
+    // Known reset: 2026-02-24T18:00:00Z (19h Paris)
+    private static let referenceReset: TimeInterval = 1_771_956_000
     private let projectsDir: URL
 
     var planType: PlanType = .max20x
@@ -37,9 +39,12 @@ final class UsageTracker {
     }
 
     func refresh() -> UsageSnapshot {
-        let now = Date()
-        let windowStart = now.addingTimeInterval(-windowDuration)
-        var snapshot = UsageSnapshot(windowStart: windowStart, planType: planType)
+        let now = Date().timeIntervalSince1970
+        let elapsed = now - Self.referenceReset
+        let windowIndex = floor(elapsed / windowDuration)
+        let windowStart = Date(timeIntervalSince1970: Self.referenceReset + windowIndex * windowDuration)
+        let nextReset = windowStart.addingTimeInterval(windowDuration)
+        var snapshot = UsageSnapshot(windowStart: windowStart, planType: planType, nextReset: nextReset)
 
         let fm = FileManager.default
         guard fm.fileExists(atPath: projectsDir.path) else { return snapshot }
@@ -88,32 +93,52 @@ final class UsageTracker {
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        for line in content.components(separatedBy: .newlines) {
-            guard !line.isEmpty else { continue }
+        // Each API call produces multiple JSONL "assistant" entries (one per content
+        // block: thinking, text, tool_use…), each carrying the cumulative usage for the
+        // whole message.  We must only count the *last* assistant entry in each
+        // consecutive run so we don't multiply the real usage by the number of blocks.
+        var pendingOutput = 0
+        var pendingInput = 0
+        var pendingCacheCreation = 0
+        var pendingCacheRead = 0
+        var hasPending = false
 
-            guard let lineData = line.data(using: .utf8),
+        func flushPending() {
+            guard hasPending else { return }
+            snapshot.outputTokens += pendingOutput
+            snapshot.inputTokens += pendingInput
+            snapshot.cacheCreationTokens += pendingCacheCreation
+            snapshot.cacheReadTokens += pendingCacheRead
+            hasPending = false
+        }
+
+        for line in content.components(separatedBy: .newlines) {
+            guard !line.isEmpty,
+                  let lineData = line.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  let type = json["type"] as? String, type == "assistant",
-                  let timestampStr = json["timestamp"] as? String,
+                  let type = json["type"] as? String
+            else { continue }
+
+            if type != "assistant" {
+                flushPending()
+                continue
+            }
+
+            guard let timestampStr = json["timestamp"] as? String,
                   let timestamp = dateFormatter.date(from: timestampStr),
                   timestamp >= windowStart,
                   let message = json["message"] as? [String: Any],
                   let usage = message["usage"] as? [String: Any]
             else { continue }
 
-            let output = usage["output_tokens"] as? Int ?? 0
-            let input = usage["input_tokens"] as? Int ?? 0
-            let cacheCreation = usage["cache_creation_input_tokens"] as? Int ?? 0
-            let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
-
-            snapshot.outputTokens += output
-            snapshot.inputTokens += input
-            snapshot.cacheCreationTokens += cacheCreation
-            snapshot.cacheReadTokens += cacheRead
-
-            if snapshot.oldestMessageInWindow == nil || timestamp < snapshot.oldestMessageInWindow! {
-                snapshot.oldestMessageInWindow = timestamp
-            }
+            // Overwrite (not accumulate) — the last entry wins
+            pendingOutput = usage["output_tokens"] as? Int ?? 0
+            pendingInput = usage["input_tokens"] as? Int ?? 0
+            pendingCacheCreation = usage["cache_creation_input_tokens"] as? Int ?? 0
+            pendingCacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
+            hasPending = true
         }
+
+        flushPending()
     }
 }
