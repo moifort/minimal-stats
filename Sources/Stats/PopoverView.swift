@@ -35,10 +35,11 @@ struct PopoverView: View {
     }
 
     private var timeRemainingText: String {
-        guard let snapshot = snapshot else { return "" }
+        guard let snapshot = snapshot,
+              let oldest = snapshot.oldestMessageInWindow else { return "" }
         let now = Date()
-        let windowEnd = snapshot.windowStart.addingTimeInterval(5 * 3600)
-        let remaining = windowEnd.timeIntervalSince(now)
+        let resetTime = oldest.addingTimeInterval(5 * 3600)
+        let remaining = resetTime.timeIntervalSince(now)
 
         if remaining <= 0 {
             return ""
@@ -48,7 +49,7 @@ struct PopoverView: View {
         let minutes = (Int(remaining) % 3600) / 60
 
         if hours > 0 {
-            return "\(hours)h"
+            return "\(hours)h\(minutes > 0 ? String(format: "%02dm", minutes) : "")"
         }
         return "\(minutes)m"
     }
@@ -81,7 +82,7 @@ struct PopoverView: View {
                 onPlanChange?(newValue)
             }
             // Title + percentage
-            HStack {
+            HStack(spacing: 4) {
                 Text("Claude Usage")
                 Spacer()
                 if (!timeRemainingText.isEmpty) {
