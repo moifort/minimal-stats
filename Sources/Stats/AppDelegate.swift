@@ -124,6 +124,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let controller = NSHostingController(rootView: contentView)
+        controller.view.wantsLayer = true
+        controller.view.layer?.backgroundColor = .clear
         let contentSize = controller.view.fittingSize
 
         let p = NSPanel(
@@ -144,8 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         visualEffect.material = .menu
         visualEffect.state = .active
         visualEffect.wantsLayer = true
-        visualEffect.layer?.cornerRadius = 10
-        visualEffect.layer?.masksToBounds = true
+        visualEffect.maskImage = .roundedRect(size: contentSize, radius: 10)
 
         controller.view.frame = visualEffect.bounds
         controller.view.autoresizingMask = [.width, .height]
@@ -429,5 +430,23 @@ struct DiskPieChartView: View {
         }
         .chartLegend(.hidden)
         .frame(width: 18, height: 18)
+    }
+}
+
+// MARK: – NSImage Rounded Rect Mask
+
+extension NSImage {
+    static func roundedRect(size: NSSize, radius: CGFloat) -> NSImage {
+        let image = NSImage(size: size, flipped: false) { rect in
+            let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+            NSColor.black.setFill()
+            path.fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(
+            top: radius, left: radius, bottom: radius, right: radius
+        )
+        image.resizingMode = .stretch
+        return image
     }
 }
