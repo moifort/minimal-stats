@@ -16,6 +16,8 @@ bundle: build
 	mkdir -p $(MACOS)
 	cp $(BUILD_DIR)/$(APP_NAME) $(MACOS)/$(APP_NAME)
 	cp Sources/Stats/Info.plist $(CONTENTS)/Info.plist
+	mkdir -p $(CONTENTS)/Resources
+	cp Sources/Stats/AppIcon.icns $(CONTENTS)/Resources/AppIcon.icns
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(CONTENTS)/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(VERSION)" $(CONTENTS)/Info.plist
 
