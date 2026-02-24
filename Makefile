@@ -4,6 +4,7 @@ APP_BUNDLE = $(APP_NAME).app
 CONTENTS = $(APP_BUNDLE)/Contents
 MACOS = $(CONTENTS)/MacOS
 CODESIGN_IDENTITY ?= -
+VERSION ?= 0.0.0
 
 .PHONY: build bundle sign install clean
 
@@ -15,6 +16,8 @@ bundle: build
 	mkdir -p $(MACOS)
 	cp $(BUILD_DIR)/$(APP_NAME) $(MACOS)/$(APP_NAME)
 	cp Sources/Stats/Info.plist $(CONTENTS)/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(CONTENTS)/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(VERSION)" $(CONTENTS)/Info.plist
 
 sign: bundle
 	codesign --force --options runtime --sign "$(CODESIGN_IDENTITY)" $(APP_BUNDLE)

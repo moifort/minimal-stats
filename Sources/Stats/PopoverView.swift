@@ -2,7 +2,9 @@ import SwiftUI
 
 struct PopoverView: View {
     let snapshot: UsageSnapshot?
+    var updateAvailable: AutoUpdater.Release?
     var onPlanChange: ((PlanType) -> Void)?
+    var onUpdate: (() -> Void)?
     var onOpenActivityMonitor: (() -> Void)?
     var onQuit: (() -> Void)?
     var onUninstall: (() -> Void)?
@@ -11,13 +13,17 @@ struct PopoverView: View {
 
     init(
         snapshot: UsageSnapshot? = nil,
+        updateAvailable: AutoUpdater.Release? = nil,
         onPlanChange: ((PlanType) -> Void)? = nil,
+        onUpdate: (() -> Void)? = nil,
         onOpenActivityMonitor: (() -> Void)? = nil,
         onQuit: (() -> Void)? = nil,
         onUninstall: (() -> Void)? = nil
     ) {
         self.snapshot = snapshot
+        self.updateAvailable = updateAvailable
         self.onPlanChange = onPlanChange
+        self.onUpdate = onUpdate
         self.onOpenActivityMonitor = onOpenActivityMonitor
         self.onQuit = onQuit
         self.onUninstall = onUninstall
@@ -58,6 +64,12 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 0) {
             if snapshot != nil {
                 claudeSection
+                Divider().padding(.vertical, 8)
+            }
+            if let release = updateAvailable {
+                actionButton("Update v\(release.version)", systemImage: "arrow.down.circle.fill") {
+                    onUpdate?()
+                }
                 Divider().padding(.vertical, 8)
             }
             actionsSection

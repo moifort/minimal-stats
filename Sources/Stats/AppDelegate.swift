@@ -14,7 +14,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarView = StatusBarView(cpuHistory: [], diskUsedFraction: 0, netInHistory: [], netOutHistory: [])
 
     private var usageTracker: UsageTracker?
+    private var autoUpdater: AutoUpdater?
+    private var updateInfo: AutoUpdater.UpdateInfo?
     private var panel: NSPanel?
+    private var updatePanel: NSPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
 
@@ -69,6 +72,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             refreshUsage()
         }
+
+        let updater = AutoUpdater()
+        updater.onUpdateAvailable = { [weak self] info in
+            self?.updateInfo = info
+        }
+        updater.startPeriodicChecks()
+        autoUpdater = updater
     }
 
     @objc private func openActivityMonitor() {
@@ -88,10 +98,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let contentView = PopoverView(
             snapshot: snapshot,
+            updateAvailable: updateInfo?.latestRelease,
             onPlanChange: { [weak self] newPlan in
                 self?.usageTracker?.planType = newPlan
                 UserDefaults.standard.set(newPlan.rawValue, forKey: "planType")
                 self?.refreshUsage()
+            },
+            onUpdate: { [weak self] in
+                guard let self, let info = self.updateInfo else { return }
+                self.closePanel()
+                self.showUpdatePanel(info: info)
             },
             onOpenActivityMonitor: { [weak self] in
                 self?.closePanel()
@@ -186,7 +202,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: – Update
+    // MARK: – Auto Update Panel
+
+    private func showUpdatePanel(info: AutoUpdater.UpdateInfo) {
+        updatePanel?.close()
+
+        let contentView = UpdateView(
+            version: info.latestRelease.version,
+            changelog: info.changelog,
+            onInstall: { [weak self] in
+                self?.updatePanel?.close()
+                self?.updatePanel = nil
+                self?.autoUpdater?.performUpdate(release: info.latestRelease)
+            },
+            onLater: { [weak self] in
+                self?.updatePanel?.close()
+                self?.updatePanel = nil
+            }
+        )
+
+        let controller = NSHostingController(rootView: contentView)
+        let size = NSSize(width: 400, height: 350)
+
+        let p = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        p.title = "Update to v\(info.latestRelease.version)"
+        p.isFloatingPanel = true
+        p.level = .floating
+        p.isOpaque = false
+        p.backgroundColor = .clear
+        p.titlebarAppearsTransparent = true
+
+        let visualEffect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+        visualEffect.material = .menu
+        visualEffect.state = .active
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 10
+        visualEffect.layer?.masksToBounds = true
+
+        controller.view.frame = visualEffect.bounds
+        controller.view.autoresizingMask = [.width, .height]
+        visualEffect.addSubview(controller.view)
+        p.contentView = visualEffect
+
+        p.center()
+        p.makeKeyAndOrderFront(nil)
+        updatePanel = p
+    }
+
+    // MARK: – Usage Update
 
     private func refreshUsage() {
         guard let tracker = usageTracker else { return }
