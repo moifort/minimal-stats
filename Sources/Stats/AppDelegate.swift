@@ -221,35 +221,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
 
-        let controller = NSHostingController(rootView: contentView)
         let size = NSSize(width: 400, height: 350)
 
         let p = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
         p.title = "Update to v\(info.latestRelease.version)"
         p.isFloatingPanel = true
         p.level = .floating
-        p.isOpaque = false
-        p.backgroundColor = .clear
-        p.titlebarAppearsTransparent = true
-
-        let visualEffect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
-        visualEffect.material = .menu
-        visualEffect.state = .active
-        visualEffect.wantsLayer = true
-        visualEffect.layer?.cornerRadius = 10
-        visualEffect.layer?.masksToBounds = true
-
-        controller.view.frame = visualEffect.bounds
-        controller.view.autoresizingMask = [.width, .height]
-        visualEffect.addSubview(controller.view)
-        p.contentView = visualEffect
+        p.contentView = NSHostingView(rootView: contentView)
 
         p.center()
+        NSApp.activate(ignoringOtherApps: true)
         p.makeKeyAndOrderFront(nil)
         updatePanel = p
     }

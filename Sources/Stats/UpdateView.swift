@@ -7,29 +7,21 @@ struct UpdateView: View {
     var onLater: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text("Update to v\(version)")
-                .font(.headline)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
-
-            Divider()
-
+        VStack(spacing: 16) {
             ScrollView {
                 Text(markdownAttributed)
                     .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
             }
-
-            Divider()
 
             HStack {
                 Button("Later") {
                     onLater?()
                 }
                 .keyboardShortcut(.cancelAction)
+                .buttonStyle(.glass)
 
                 Spacer()
 
@@ -37,10 +29,10 @@ struct UpdateView: View {
                     onInstall?()
                 }
                 .keyboardShortcut(.defaultAction)
+                .buttonStyle(.glassProminent)
             }
-            .padding(16)
         }
-        .frame(width: 400, height: 350)
+        .padding(16)
     }
 
     private var markdownAttributed: AttributedString {
