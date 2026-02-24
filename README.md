@@ -13,7 +13,7 @@ Stats lives in your menu bar and displays four widgets side by side:
 - **Disk space** — A pie chart showing how much storage is used vs free on your main drive.
 - **Claude usage** — A small bar showing your current Claude API usage within the active rate-limit window. Only appears if `~/.claude` exists.
 
-Clicking on the menu bar icon opens a popover with detailed Claude usage (percentage, time remaining, plan selector) and quick actions (Activity Monitor, Quit, Uninstall).
+Clicking on the menu bar icon opens a popover with detailed Claude usage (percentage, time remaining, plan selector, app version) and quick actions (Activity Monitor, Quit, Uninstall). The app checks for updates automatically and shows an update button in the popover when a new version is available.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
 
@@ -40,6 +40,10 @@ make install
 ```
 
 This builds the app and copies it to `/Applications`.
+
+## Update
+
+The app checks for updates automatically once a day. When a new version is available, an update button appears in the popover. Clicking it shows the changelog and installs the update in-place — no need to re-download manually.
 
 ### Uninstall
 
