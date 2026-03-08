@@ -8,12 +8,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let stats = SystemStats()
     private var timer: Timer?
-    private var usageTimer: Timer?
 
     private var hostingView: NSHostingView<StatusBarView>?
     private var statusBarView = StatusBarView(cpuHistory: [], diskUsedFraction: 0, netInHistory: [], netOutHistory: [])
 
-    private var usageTracker: UsageTracker?
     private var autoUpdater: AutoUpdater?
     private var updateInfo: AutoUpdater.UpdateInfo?
     private var panel: NSPanel?
@@ -24,21 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: – Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let claudeExists = FileManager.default.fileExists(
-            atPath: FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".claude").path
-        )
-
-        let barWidth: CGFloat = claudeExists ? 133 : 113
-
-        if claudeExists {
-            let tracker = UsageTracker()
-            if let saved = UserDefaults.standard.string(forKey: "planType"),
-               let plan = PlanType(rawValue: saved) {
-                tracker.planType = plan
-            }
-            usageTracker = tracker
-        }
+        let barWidth: CGFloat = 113
 
         statusItem = NSStatusBar.system.statusItem(withLength: barWidth)
 
@@ -66,13 +50,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.tick()
         }
 
-        if usageTracker != nil {
-            usageTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-                self?.refreshUsage()
-            }
-            refreshUsage()
-        }
-
         let updater = AutoUpdater()
         updater.onUpdateAvailable = { [weak self] info in
             self?.updateInfo = info
@@ -94,16 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let snapshot = usageTracker?.refresh()
-
         let contentView = PopoverView(
-            snapshot: snapshot,
             updateAvailable: updateInfo?.latestRelease,
-            onPlanChange: { [weak self] newPlan in
-                self?.usageTracker?.planType = newPlan
-                UserDefaults.standard.set(newPlan.rawValue, forKey: "planType")
-                self?.refreshUsage()
-            },
             onUpdate: { [weak self] in
                 guard let self, let info = self.updateInfo else { return }
                 self.closePanel()
@@ -241,15 +210,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updatePanel = p
     }
 
-    // MARK: – Usage Update
-
-    private func refreshUsage() {
-        guard let tracker = usageTracker else { return }
-        let snapshot = tracker.refresh()
-        statusBarView.claudeUsageFraction = snapshot.fraction
-        hostingView?.rootView = statusBarView
-    }
-
     private func tick() {
         _ = stats.refresh()
         statusBarView.cpuHistory = stats.cpuHistory
@@ -269,35 +229,13 @@ struct StatusBarView: View {
     var diskUsedFraction: Double
     var netInHistory: [Double]
     var netOutHistory: [Double]
-    var claudeUsageFraction: Double?
 
     var body: some View {
         HStack(spacing: 10) {
             CPULineChartView(history: cpuHistory)
             NetworkChartView(inHistory: netInHistory, outHistory: netOutHistory)
             DiskPieChartView(usedFraction: diskUsedFraction)
-            if let fraction = claudeUsageFraction {
-                ClaudeUsageBarView(fraction: fraction)
-            }
         }
-    }
-}
-
-// MARK: – Claude Usage Bar View
-
-struct ClaudeUsageBarView: View {
-    var fraction: Double
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.primary.opacity(0.15))
-                .frame(width: 6, height: 18)
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.primary)
-                .frame(width: 6, height: max(CGFloat(fraction) * 18, fraction > 0 ? 2 : 0))
-        }
-        .frame(width: 8, height: 22)
     }
 }
 
