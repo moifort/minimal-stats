@@ -11,9 +11,8 @@ Stats lives in your menu bar and displays four widgets side by side:
 - **CPU usage** — A rolling line chart showing your processor activity over the last 5 minutes. Helps you quickly spot if something is consuming too many resources.
 - **Network speed** — A mirrored chart showing upload speed on top and download speed on the bottom. Useful to monitor ongoing transfers or detect unexpected network activity.
 - **Disk space** — A pie chart showing how much storage is used vs free on your main drive.
-- **Claude usage** — A small bar showing your current Claude API usage within the active rate-limit window. Only appears if `~/.claude` exists.
 
-Clicking on the menu bar icon opens a popover with detailed Claude usage (percentage, time remaining, plan selector, app version) and quick actions (Activity Monitor, Quit, Uninstall). The app checks for updates automatically and shows an update button in the popover when a new version is available.
+Clicking on the menu bar icon opens a popover with quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
 
