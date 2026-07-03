@@ -1,4 +1,5 @@
 import AppKit
+import os
 
 final class AutoUpdater {
 
@@ -12,6 +13,20 @@ final class AutoUpdater {
         let latestRelease: Release
         let changelog: String
     }
+
+    enum UpdateError: LocalizedError {
+        case extractionFailed
+        case appBundleNotFound
+
+        var errorDescription: String? {
+            switch self {
+            case .extractionFailed: return "The downloaded archive could not be extracted."
+            case .appBundleNotFound: return "No app bundle was found in the downloaded archive."
+            }
+        }
+    }
+
+    private static let log = Logger(subsystem: "com.stats.menubar", category: "AutoUpdater")
 
     private let repo = "moifort/minimal-stats"
     private var timer: Timer?
@@ -32,8 +47,15 @@ final class AutoUpdater {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
 
         URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
-            guard let self, let data, error == nil else { return }
-            guard let releases = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return }
+            guard let self else { return }
+            guard let data, error == nil else {
+                Self.log.error("Update check failed: \(error?.localizedDescription ?? "no data")")
+                return
+            }
+            guard let releases = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+                Self.log.error("Update check failed: unexpected response payload")
+                return
+            }
 
             let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
             let parsed = self.parseReleases(releases)
@@ -56,12 +78,15 @@ final class AutoUpdater {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let zipPath = tempDir.appendingPathComponent("Stats.app.zip")
 
-        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        URLSession.shared.downloadTask(with: release.downloadURL) { localURL, _, error in
-            guard let localURL, error == nil else { return }
+        URLSession.shared.downloadTask(with: release.downloadURL) { [weak self] localURL, _, error in
+            guard let self else { return }
+            guard let localURL, error == nil else {
+                self.reportFailure(error ?? URLError(.unknown))
+                return
+            }
 
             do {
+                try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
                 try FileManager.default.moveItem(at: localURL, to: zipPath)
 
                 let extractDir = tempDir.appendingPathComponent("extracted")
@@ -73,15 +98,25 @@ final class AutoUpdater {
                 try ditto.run()
                 ditto.waitUntilExit()
 
-                guard ditto.terminationStatus == 0 else { return }
+                guard ditto.terminationStatus == 0 else { throw UpdateError.extractionFailed }
 
-                let newApp = extractDir.appendingPathComponent("Stats.app")
+                let extracted = try FileManager.default.contentsOfDirectory(at: extractDir, includingPropertiesForKeys: nil)
+                guard let newApp = extracted.first(where: { $0.pathExtension == "app" }) else {
+                    throw UpdateError.appBundleNotFound
+                }
+
                 let currentApp = Bundle.main.bundleURL
                 let backupPath = currentApp.deletingLastPathComponent().appendingPathComponent("Stats.app.bak")
 
                 try? FileManager.default.removeItem(at: backupPath)
                 try FileManager.default.moveItem(at: currentApp, to: backupPath)
-                try FileManager.default.moveItem(at: newApp, to: currentApp)
+                do {
+                    try FileManager.default.moveItem(at: newApp, to: currentApp)
+                } catch {
+                    // Roll back so the user still has a working app
+                    try? FileManager.default.moveItem(at: backupPath, to: currentApp)
+                    throw error
+                }
                 try? FileManager.default.removeItem(at: backupPath)
                 try? FileManager.default.removeItem(at: tempDir)
 
@@ -97,15 +132,31 @@ final class AutoUpdater {
                 }
             } catch {
                 try? FileManager.default.removeItem(at: tempDir)
+                self.reportFailure(error)
             }
         }.resume()
     }
 
     // MARK: - Private
 
+    private func reportFailure(_ error: Error) {
+        Self.log.error("Update failed: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "Update Failed"
+            alert.informativeText = "The update could not be installed: \(error.localizedDescription)"
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
+    }
+
     private func parseReleases(_ releases: [[String: Any]]) -> [Release] {
         releases.compactMap { dict -> Release? in
-            guard let tagName = dict["tag_name"] as? String,
+            guard (dict["prerelease"] as? Bool) != true,
+                  (dict["draft"] as? Bool) != true,
+                  let tagName = dict["tag_name"] as? String,
                   let body = dict["body"] as? String,
                   let assets = dict["assets"] as? [[String: Any]],
                   let zipAsset = assets.first(where: { ($0["name"] as? String)?.hasSuffix(".zip") == true }),
