@@ -1,18 +1,18 @@
 import AppKit
 import SwiftUI
-import Charts
 import ServiceManagement
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem!
     private let stats = SystemStats()
+    private let statusBarModel = StatusBarModel()
     private var timer: Timer?
-
-    private var hostingView: NSHostingView<StatusBarView>?
-    private var statusBarView = StatusBarView(cpuHistory: [], diskUsedFraction: 0, netInHistory: [], netOutHistory: [])
+    private var quotaTimer: Timer?
 
     private var autoUpdater: AutoUpdater?
+    private var quotaTracker: QuotaTracker?
     private var updateInfo: AutoUpdater.UpdateInfo?
     private var panel: NSPanel?
     private var updatePanel: NSPanel?
@@ -22,32 +22,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: – Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let barWidth: CGFloat = 113
+        let claudeExists = QuotaTracker.isClaudeCodeInstalled()
+        if claudeExists {
+            statusBarModel.claudeQuota = .stale
+        }
+
+        let view = NSHostingView(rootView: StatusBarView(model: statusBarModel))
+        let barWidth = view.fittingSize.width
+        view.frame = NSRect(x: 0, y: 0, width: barWidth, height: 22)
 
         statusItem = NSStatusBar.system.statusItem(withLength: barWidth)
-
         if let button = statusItem.button {
             button.target = self
             button.action = #selector(togglePopover)
-            let view = NSHostingView(rootView: statusBarView)
-            view.frame = NSRect(x: 0, y: 0, width: barWidth, height: 22)
             button.subviews.forEach { $0.removeFromSuperview() }
             button.addSubview(view)
             button.frame.size = view.frame.size
-            hostingView = view
         }
 
         // Register as login item
         try? SMAppService.mainApp.register()
 
-        // Seed the delta-based CPU metric with an initial reading
-        _ = stats.refresh()
+        // Seed the delta-based CPU/network metrics with an initial reading
+        stats.refresh()
 
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.tick()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            self?.tick()
+        // .common mode keeps the charts ticking during event tracking
+        let statsTimer = Timer(
+            timeInterval: ChartMetrics.refreshInterval,
+            target: self,
+            selector: #selector(tick),
+            userInfo: nil,
+            repeats: true
+        )
+        RunLoop.main.add(statsTimer, forMode: .common)
+        timer = statsTimer
+
+        if claudeExists {
+            let tracker = QuotaTracker()
+            tracker.onRefreshCompleted = { [weak self] in
+                self?.applyQuota()
+            }
+            quotaTracker = tracker
+
+            let qTimer = Timer(
+                timeInterval: 120.0,
+                target: self,
+                selector: #selector(refreshQuota),
+                userInfo: nil,
+                repeats: true
+            )
+            qTimer.tolerance = 10
+            RunLoop.main.add(qTimer, forMode: .common)
+            quotaTimer = qTimer
+            tracker.refresh()
         }
 
         let updater = AutoUpdater()
@@ -58,7 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         autoUpdater = updater
     }
 
-    @objc private func openActivityMonitor() {
+    private func openActivityMonitor() {
         let url = URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app")
         NSWorkspace.shared.openApplication(at: url, configuration: .init())
     }
@@ -71,8 +98,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        quotaTracker?.refresh(force: true)
+
         let contentView = PopoverView(
             updateAvailable: updateInfo?.latestRelease,
+            quotaTracker: quotaTracker,
             onUpdate: { [weak self] in
                 guard let self, let info = self.updateInfo else { return }
                 self.closePanel()
@@ -80,8 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onOpenActivityMonitor: { [weak self] in
                 self?.closePanel()
-                let url = URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app")
-                NSWorkspace.shared.openApplication(at: url, configuration: .init())
+                self?.openActivityMonitor()
             },
             onQuit: {
                 NSApplication.shared.terminate(nil)
@@ -103,6 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
+        p.isReleasedWhenClosed = false
         p.isFloatingPanel = true
         p.level = .popUpMenu
         p.isOpaque = false
@@ -199,6 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
+        p.isReleasedWhenClosed = false
         p.title = "Update to v\(info.latestRelease.version)"
         p.isFloatingPanel = true
         p.level = .floating
@@ -210,181 +241,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updatePanel = p
     }
 
-    private func tick() {
-        _ = stats.refresh()
-        statusBarView.cpuHistory = stats.cpuHistory
+    // MARK: – Refresh
+
+    @objc private func tick() {
+        stats.refresh()
+        statusBarModel.cpuHistory = stats.cpuHistory
         if stats.diskTotal > 0 {
-            statusBarView.diskUsedFraction = Double(stats.diskUsed) / Double(stats.diskTotal)
+            statusBarModel.diskUsedFraction = Double(stats.diskUsed) / Double(stats.diskTotal)
         }
-        statusBarView.netInHistory = stats.netInHistory
-        statusBarView.netOutHistory = stats.netOutHistory
-        hostingView?.rootView = statusBarView
+        statusBarModel.netInHistory = stats.netInHistory
+        statusBarModel.netOutHistory = stats.netOutHistory
     }
-}
 
-// MARK: – Combined Status Bar View
+    @objc private func refreshQuota() {
+        quotaTracker?.refresh()
+    }
 
-struct StatusBarView: View {
-    var cpuHistory: [Double]
-    var diskUsedFraction: Double
-    var netInHistory: [Double]
-    var netOutHistory: [Double]
-
-    var body: some View {
-        HStack(spacing: 10) {
-            CPULineChartView(history: cpuHistory)
-            NetworkChartView(inHistory: netInHistory, outHistory: netOutHistory)
-            DiskPieChartView(usedFraction: diskUsedFraction)
+    private func applyQuota() {
+        guard let tracker = quotaTracker else { return }
+        if !tracker.isStale, let utilization = tracker.lastSnapshot?.fiveHourUtilization {
+            statusBarModel.claudeQuota = .level(utilization)
+        } else {
+            statusBarModel.claudeQuota = .stale
         }
-    }
-}
-
-// MARK: – CPU Chart View
-
-struct CPULineChartView: View {
-    var history: [Double]
-
-    private var dataPoints: [(index: Int, value: Double)] {
-        let offset = 149 - history.count + 1
-        return history.enumerated().map { (index: $0.offset + offset, value: $0.element) }
-    }
-
-    var body: some View {
-        Chart(dataPoints, id: \.index) { point in
-            AreaMark(
-                x: .value("Time", point.index),
-                y: .value("CPU", point.value)
-            )
-            .foregroundStyle(Color.primary)
-            .interpolationMethod(.catmullRom)
-
-            LineMark(
-                x: .value("Time", point.index),
-                y: .value("CPU", point.value)
-            )
-            .lineStyle(StrokeStyle(lineWidth: 0.5))
-            .foregroundStyle(Color.primary)
-            .interpolationMethod(.catmullRom)
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartYScale(domain: 0...100)
-        .chartXScale(domain: 0...149)
-        .chartLegend(.hidden)
-        .chartPlotStyle { plotArea in
-            plotArea.background(.clear)
-        }
-        .frame(width: 35, height: 18)
-    }
-}
-
-// MARK: – Network Chart View
-
-struct NetworkChartView: View {
-    var inHistory: [Double]
-    var outHistory: [Double]
-
-    private var maxSpeed: Double {
-        max(inHistory.max() ?? 1, outHistory.max() ?? 1, 1)
-    }
-
-    private func dataPoints(_ history: [Double]) -> [(index: Int, value: Double)] {
-        let scale = maxSpeed
-        let offset = 149 - history.count + 1
-        return history.enumerated().map { (index: $0.offset + offset, value: $0.element / scale * 100) }
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Upload — grows from bottom of top half (flipped)
-            Chart(dataPoints(outHistory), id: \.index) { point in
-                AreaMark(
-                    x: .value("Time", point.index),
-                    y: .value("Out", point.value)
-                )
-                .foregroundStyle(Color.primary)
-                .interpolationMethod(.catmullRom)
-
-                LineMark(
-                    x: .value("Time", point.index),
-                    y: .value("Out", point.value)
-                )
-                .lineStyle(StrokeStyle(lineWidth: 0.5))
-                .foregroundStyle(Color.primary)
-                .interpolationMethod(.catmullRom)
-            }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .chartYScale(domain: 0...100)
-            .chartXScale(domain: 0...149)
-            .chartLegend(.hidden)
-            .chartPlotStyle { plotArea in
-                plotArea.background(.clear)
-            }
-            .frame(width: 35, height: 9)
-            .scaleEffect(y: -1)
-
-            // Download — grows from top of bottom half (normal)
-            Chart(dataPoints(inHistory), id: \.index) { point in
-                AreaMark(
-                    x: .value("Time", point.index),
-                    y: .value("In", point.value)
-                )
-                .foregroundStyle(Color.primary)
-                .interpolationMethod(.catmullRom)
-
-                LineMark(
-                    x: .value("Time", point.index),
-                    y: .value("In", point.value)
-                )
-                .lineStyle(StrokeStyle(lineWidth: 0.5))
-                .foregroundStyle(Color.primary)
-                .interpolationMethod(.catmullRom)
-            }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .chartYScale(domain: 0...100)
-            .chartXScale(domain: 0...149)
-            .chartLegend(.hidden)
-            .chartPlotStyle { plotArea in
-                plotArea.background(.clear)
-            }
-            .frame(width: 35, height: 9)
-        }
-    }
-}
-
-// MARK: – Disk Pie Chart View
-
-struct DiskPieChartView: View {
-    var usedFraction: Double
-
-    var body: some View {
-        Chart {
-            SectorMark(angle: .value("Used", usedFraction), innerRadius: .ratio(0))
-                .foregroundStyle(Color.primary)
-            SectorMark(angle: .value("Free", 1 - usedFraction), innerRadius: .ratio(0))
-                .foregroundStyle(Color.primary.opacity(0.2))
-        }
-        .chartLegend(.hidden)
-        .frame(width: 18, height: 18)
-    }
-}
-
-// MARK: – NSImage Rounded Rect Mask
-
-extension NSImage {
-    static func roundedRect(size: NSSize, radius: CGFloat) -> NSImage {
-        let image = NSImage(size: size, flipped: false) { rect in
-            let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-            NSColor.black.setFill()
-            path.fill()
-            return true
-        }
-        image.capInsets = NSEdgeInsets(
-            top: radius, left: radius, bottom: radius, right: radius
-        )
-        image.resizingMode = .stretch
-        return image
     }
 }

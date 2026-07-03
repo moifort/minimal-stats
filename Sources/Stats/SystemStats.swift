@@ -1,6 +1,13 @@
 import Foundation
 import Darwin
 
+/// Shared sizing between the SystemStats history buffers and the chart views.
+enum ChartMetrics {
+    /// 5 minutes of history at `refreshInterval` seconds per sample
+    static let sampleCount = 150
+    static let refreshInterval: TimeInterval = 2.0
+}
+
 // Network interface stats from sysctl
 private let CTL_NET: Int32 = 4
 private let PF_ROUTE: Int32 = 17
@@ -15,7 +22,7 @@ final class SystemStats {
 
     /// Rolling CPU usage history (last 5 minutes at 2-second intervals = 150 samples)
     private(set) var cpuHistory: [Double] = []
-    private let maxHistoryCount = 150
+    private let maxHistoryCount = ChartMetrics.sampleCount
 
     /// Disk space in bytes
     private(set) var diskUsed: Int64 = 0
@@ -29,15 +36,16 @@ final class SystemStats {
 
     // MARK: – Public
 
-    func refresh() -> Double {
+    func refresh() {
         readDisk()
         readNetwork()
-        let cpu = readCPU()
-        cpuHistory.append(cpu)
-        if cpuHistory.count > maxHistoryCount {
-            cpuHistory.removeFirst(cpuHistory.count - maxHistoryCount)
+        // The first reading only seeds the deltas and yields no sample
+        if let cpu = readCPU() {
+            cpuHistory.append(cpu)
+            if cpuHistory.count > maxHistoryCount {
+                cpuHistory.removeFirst(cpuHistory.count - maxHistoryCount)
+            }
         }
-        return cpu
     }
 
     // MARK: – Network
@@ -98,7 +106,7 @@ final class SystemStats {
 
     // MARK: – CPU
 
-    private func readCPU() -> Double {
+    private func readCPU() -> Double? {
         var loadInfo = host_cpu_load_info_data_t()
         var count = mach_msg_type_number_t(
             MemoryLayout<host_cpu_load_info_data_t>.size / MemoryLayout<integer_t>.size
@@ -108,25 +116,22 @@ final class SystemStats {
                 host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
             }
         }
-        guard kr == KERN_SUCCESS else { return 0 }
+        guard kr == KERN_SUCCESS else { return nil }
 
         let user   = loadInfo.cpu_ticks.0
         let system = loadInfo.cpu_ticks.1
         let idle   = loadInfo.cpu_ticks.2
         let nice   = loadInfo.cpu_ticks.3
 
-        var usage: Double = 0
-        if let prev = prevCPU {
-            let dUser   = Double(user   &- prev.user)
-            let dSystem = Double(system &- prev.system)
-            let dIdle   = Double(idle   &- prev.idle)
-            let dNice   = Double(nice   &- prev.nice)
-            let total   = dUser + dSystem + dIdle + dNice
-            if total > 0 {
-                usage = ((dUser + dSystem + dNice) / total) * 100.0
-            }
-        }
-        prevCPU = (user, system, idle, nice)
-        return usage
+        defer { prevCPU = (user, system, idle, nice) }
+        guard let prev = prevCPU else { return nil }
+
+        let dUser   = Double(user   &- prev.user)
+        let dSystem = Double(system &- prev.system)
+        let dIdle   = Double(idle   &- prev.idle)
+        let dNice   = Double(nice   &- prev.nice)
+        let total   = dUser + dSystem + dIdle + dNice
+        guard total > 0 else { return nil }
+        return ((dUser + dSystem + dNice) / total) * 100.0
     }
 }
