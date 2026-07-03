@@ -8,11 +8,12 @@ A lightweight macOS menu bar app that keeps essential system metrics always visi
 
 Stats lives in your menu bar and displays four widgets side by side:
 
+- **Claude usage** — Three stacked dots (green / orange / red) that light up based on your Claude Code usage over the current 5-hour window (green below 50%, orange below 80%, red at 80% or above). The dots dim when the data is stale. This widget only appears if Claude Code is installed (`~/.claude`).
 - **CPU usage** — A rolling line chart showing your processor activity over the last 5 minutes. Helps you quickly spot if something is consuming too many resources.
 - **Network speed** — A mirrored chart showing upload speed on top and download speed on the bottom. Useful to monitor ongoing transfers or detect unexpected network activity.
 - **Disk space** — A pie chart showing how much storage is used vs free on your main drive.
 
-Clicking on the menu bar icon opens a popover with quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
+Clicking on the menu bar icon opens a popover with quick actions (Activity Monitor, Quit, Uninstall) and the app version. When Claude Code is installed, the popover also shows a **Claude Usage** section at the top with your 5-hour and weekly usage (percentage plus reset time), updated live while the popover is open. The app checks for updates automatically and shows an update button in the popover when a new version is available.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
 
@@ -30,7 +31,7 @@ The app starts automatically at login and runs silently in the background with n
 
 ### From source
 
-Requires Xcode command line tools and macOS 14+.
+Requires Xcode command line tools and macOS 26+.
 
 ```sh
 git clone https://github.com/moifort/minimal-stats.git
