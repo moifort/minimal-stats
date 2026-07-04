@@ -251,6 +251,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusBarModel.netInHistory = stats.netInHistory
         statusBarModel.netOutHistory = stats.netOutHistory
+        // Re-evaluate the Claude light every tick so it flips to green the moment
+        // the reset time is crossed, without waiting for the next quota fetch.
+        if quotaTracker != nil {
+            applyQuota()
+        }
     }
 
     @objc private func refreshQuota() {
@@ -259,10 +264,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func applyQuota() {
         guard let tracker = quotaTracker else { return }
-        if !tracker.isStale, let utilization = tracker.lastSnapshot?.fiveHourUtilization {
-            statusBarModel.claudeQuota = .level(utilization)
-        } else {
+        guard !tracker.isStale, let snapshot = tracker.lastSnapshot,
+              let utilization = snapshot.fiveHourUtilization else {
             statusBarModel.claudeQuota = .stale
+            return
         }
+        // Once the five-hour window's reset time has passed, usage is back to
+        // zero — turn the light green right away instead of waiting for the
+        // next fetch to confirm it.
+        if let resetsAt = snapshot.fiveHourResetsAt, Date() >= resetsAt {
+            statusBarModel.claudeQuota = .level(0)
+            return
+        }
+        statusBarModel.claudeQuota = .level(utilization)
     }
 }
