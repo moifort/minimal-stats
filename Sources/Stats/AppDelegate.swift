@@ -264,7 +264,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func applyQuota() {
         guard let tracker = quotaTracker else { return }
-        guard !tracker.isStale, let snapshot = tracker.lastSnapshot,
+        // Keep showing the last known level even when the snapshot goes stale:
+        // usage only changes at the reset boundary, so a stale value is still
+        // accurate until then. We only dim to `.stale` when we have no snapshot
+        // at all (nothing fetched yet).
+        guard let snapshot = tracker.lastSnapshot,
               let utilization = snapshot.fiveHourUtilization else {
             statusBarModel.claudeQuota = .stale
             return
