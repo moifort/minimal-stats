@@ -83,7 +83,7 @@ private struct SystemStatsSection: View {
                 Text(Format.inOut(model.netInHistory.last ?? 0, model.netOutHistory.last ?? 0, suffix: "/s"))
             }
             StatRow(systemImage: "internaldrive", title: "Disk") {
-                Text("\(Format.bytes(Double(model.diskFree))) free")
+                Text("\(Format.bytes(Double(model.diskTotal - model.diskFree))) / \(Format.bytes(Double(model.diskTotal), decimals: 0))")
             }
         }
     }
