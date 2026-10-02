@@ -82,20 +82,6 @@ private struct SystemStatsSection: View {
             StatRow(systemImage: "network", title: "Network") {
                 Text(Format.inOut(model.netInHistory.last ?? 0, model.netOutHistory.last ?? 0, suffix: "/s"))
             }
-            StatRow(systemImage: "", title: "Peak 5 min", secondary: true) {
-                Text(Format.inOut(model.netInHistory.max() ?? 0, model.netOutHistory.max() ?? 0, suffix: "/s"))
-            }
-            StatRow(systemImage: "", title: "Top 5 min", secondary: true) {
-                if let top = model.networkProcesses.first {
-                    Text(top.name)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Text(Format.inOut(Double(top.bytesIn), Double(top.bytesOut)))
-                        .fixedSize()
-                } else {
-                    Text("–")
-                }
-            }
             StatRow(systemImage: "internaldrive", title: "Disk") {
                 Text("\(Format.bytes(Double(model.diskFree))) free")
             }
@@ -106,7 +92,6 @@ private struct SystemStatsSection: View {
 private struct StatRow<Value: View>: View {
     var systemImage: String
     var title: String
-    var secondary = false
     @ViewBuilder var value: Value
 
     var body: some View {
@@ -117,14 +102,13 @@ private struct StatRow<Value: View>: View {
             Text(title)
                 .lineLimit(1)
                 .fixedSize()
-                .foregroundStyle(secondary ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
             Spacer(minLength: 8)
-            HStack(spacing: 6) { value }
+            value
                 .lineLimit(1)
                 .monospacedDigit()
         }
-        .font(.system(size: secondary ? 11 : 13))
-        .padding(.vertical, secondary ? 1 : 4)
+        .font(.system(size: 13))
+        .padding(.vertical, 4)
         .padding(.horizontal, 4)
     }
 }
