@@ -10,7 +10,6 @@ final class StatusBarModel: ObservableObject {
     @Published var diskUsedFraction: Double = 0
     @Published var netInHistory: [Double] = []
     @Published var netOutHistory: [Double] = []
-    @Published var claudeQuota: QuotaDotState?
 }
 
 // MARK: – Combined Status Bar View
@@ -20,9 +19,6 @@ struct StatusBarView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if let quota = model.claudeQuota {
-                QuotaDotView(state: quota)
-            }
             SparklineChart(history: model.cpuHistory)
             NetworkChartView(inHistory: model.netInHistory, outHistory: model.netOutHistory)
             DiskPieChartView(usedFraction: model.diskUsedFraction)
@@ -109,43 +105,6 @@ struct DiskPieChartView: View {
         }
         .chartLegend(.hidden)
         .frame(width: 18, height: 18)
-    }
-}
-
-// MARK: – Claude Quota Dot View
-
-enum QuotaDotState {
-    case level(Double)   // five_hour utilization, 0–100
-    case stale
-}
-
-struct QuotaDotView: View {
-    var state: QuotaDotState
-
-    // 0 = red, 1 = orange, 2 = green, nil = stale (all dimmed)
-    private var activeIndex: Int? {
-        switch state {
-        case .stale:
-            return nil
-        case .level(let utilization):
-            if utilization < 50 { return 2 }
-            if utilization < 80 { return 1 }
-            return 0
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 2) {
-            dot(.red, index: 0)
-            dot(.orange, index: 1)
-            dot(.green, index: 2)
-        }
-    }
-
-    private func dot(_ color: Color, index: Int) -> some View {
-        Circle()
-            .fill(activeIndex == index ? color : color.opacity(0.18))
-            .frame(width: 5, height: 5)
     }
 }
 

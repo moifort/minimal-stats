@@ -9,7 +9,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let stats = SystemStats()
     private let statusBarModel = StatusBarModel()
     private var timer: Timer?
-    private var quotaTimer: Timer?
 
     private var autoUpdater: AutoUpdater?
     private var quotaTracker: QuotaTracker?
@@ -22,11 +21,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: – Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let claudeExists = QuotaTracker.isClaudeCodeInstalled()
-        if claudeExists {
-            statusBarModel.claudeQuota = .stale
-        }
-
         let view = NSHostingView(rootView: StatusBarView(model: statusBarModel))
         let barWidth = view.fittingSize.width
         view.frame = NSRect(x: 0, y: 0, width: barWidth, height: 22)
@@ -57,24 +51,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         RunLoop.main.add(statsTimer, forMode: .common)
         timer = statsTimer
 
-        if claudeExists {
-            let tracker = QuotaTracker()
-            tracker.onRefreshCompleted = { [weak self] in
-                self?.applyQuota()
-            }
-            quotaTracker = tracker
-
-            let qTimer = Timer(
-                timeInterval: 120.0,
-                target: self,
-                selector: #selector(refreshQuota),
-                userInfo: nil,
-                repeats: true
-            )
-            qTimer.tolerance = 10
-            RunLoop.main.add(qTimer, forMode: .common)
-            quotaTimer = qTimer
-            tracker.refresh()
+        // The quota is only fetched while the popover is open
+        if QuotaTracker.isClaudeCodeInstalled() {
+            quotaTracker = QuotaTracker()
         }
 
         let updater = AutoUpdater()
@@ -251,35 +230,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusBarModel.netInHistory = stats.netInHistory
         statusBarModel.netOutHistory = stats.netOutHistory
-        // Re-evaluate the Claude light every tick so it flips to green the moment
-        // the reset time is crossed, without waiting for the next quota fetch.
-        if quotaTracker != nil {
-            applyQuota()
+        // The Claude quota is only needed while the popover is visible
+        if panel != nil {
+            quotaTracker?.refresh()
         }
-    }
-
-    @objc private func refreshQuota() {
-        quotaTracker?.refresh()
-    }
-
-    private func applyQuota() {
-        guard let tracker = quotaTracker else { return }
-        // Keep showing the last known level even when the snapshot goes stale:
-        // usage only changes at the reset boundary, so a stale value is still
-        // accurate until then. We only dim to `.stale` when we have no snapshot
-        // at all (nothing fetched yet).
-        guard let snapshot = tracker.lastSnapshot,
-              let utilization = snapshot.fiveHourUtilization else {
-            statusBarModel.claudeQuota = .stale
-            return
-        }
-        // Once the five-hour window's reset time has passed, usage is back to
-        // zero — turn the light green right away instead of waiting for the
-        // next fetch to confirm it.
-        if let resetsAt = snapshot.fiveHourResetsAt, Date() >= resetsAt {
-            statusBarModel.claudeQuota = .level(0)
-            return
-        }
-        statusBarModel.claudeQuota = .level(utilization)
     }
 }

@@ -32,14 +32,11 @@ final class QuotaTracker: ObservableObject {
     private nonisolated static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private nonisolated static let keychainService = "Claude Code-credentials"
     private nonisolated static let staleAfter: TimeInterval = 600
-    private nonisolated static let minFetchInterval: TimeInterval = 30
+    private nonisolated static let minFetchInterval: TimeInterval = 60
 
     @Published private(set) var lastSnapshot: QuotaSnapshot?
     @Published private(set) var isFetching = false
     private var lastFetchAttempt: Date?
-
-    /// Called on the main actor after every refresh attempt, success or failure.
-    var onRefreshCompleted: (() -> Void)?
 
     init(initialSnapshot: QuotaSnapshot? = nil) {
         lastSnapshot = initialSnapshot
@@ -71,7 +68,6 @@ final class QuotaTracker: ObservableObject {
             guard let self else { return }
             if let snapshot { self.lastSnapshot = snapshot }
             self.isFetching = false
-            self.onRefreshCompleted?()
         }
     }
 
