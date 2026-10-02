@@ -124,23 +124,7 @@ final class QuotaTracker: ObservableObject {
     }
 
     private nonisolated static func readKeychainPayload() -> Data? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["find-generic-password", "-s", keychainService, "-w"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-        } catch {
-            return nil
-        }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0,
-              let output = String(data: data, encoding: .utf8)?
+        guard let output = runCommand("/usr/bin/security", ["find-generic-password", "-s", keychainService, "-w"])?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
               !output.isEmpty
         else { return nil }

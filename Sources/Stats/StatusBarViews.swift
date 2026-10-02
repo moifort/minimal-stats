@@ -5,11 +5,32 @@ import Combine
 
 // MARK: – Status Bar Model
 
+/// Live metrics shared by the menu bar widgets and the popover.
 final class StatusBarModel: ObservableObject {
     @Published var cpuHistory: [Double] = []
-    @Published var diskUsedFraction: Double = 0
-    @Published var netInHistory: [Double] = []
-    @Published var netOutHistory: [Double] = []
+    @Published var netInHistory: [Double] = []   // bytes/sec
+    @Published var netOutHistory: [Double] = []  // bytes/sec
+    @Published var diskFree: Int64 = 0
+    @Published var diskTotal: Int64 = 0
+    @Published var memoryUsed: UInt64 = 0
+    @Published var memoryTotal: UInt64 = 0
+    /// Only refreshed while the popover is open
+    @Published var processes: [ProcessUsage] = []
+    @Published var networkProcesses: [NetworkProcessUsage] = []
+    /// Kept here rather than in view state so the chosen tab survives reopening the popover
+    @Published var processSort: ProcessSort = .cpu
+
+    var diskUsedFraction: Double {
+        diskTotal > 0 ? Double(diskTotal - diskFree) / Double(diskTotal) : 0
+    }
+
+    var memoryUsedFraction: Double {
+        memoryTotal > 0 ? Double(memoryUsed) / Double(memoryTotal) : 0
+    }
+}
+
+enum ProcessSort: String, CaseIterable {
+    case cpu = "CPU", memory = "Memory", network = "Network"
 }
 
 // MARK: – Combined Status Bar View
@@ -21,6 +42,7 @@ struct StatusBarView: View {
         HStack(spacing: 10) {
             SparklineChart(history: model.cpuHistory)
             NetworkChartView(inHistory: model.netInHistory, outHistory: model.netOutHistory)
+            MemoryGaugeView(usedFraction: model.memoryUsedFraction)
             DiskPieChartView(usedFraction: model.diskUsedFraction)
         }
         .padding(.horizontal, 5)
@@ -105,6 +127,26 @@ struct DiskPieChartView: View {
         }
         .chartLegend(.hidden)
         .frame(width: 18, height: 18)
+    }
+}
+
+// MARK: – Memory Gauge View
+
+/// Vertical bar filled to the used share of RAM, styled like the disk pie.
+struct MemoryGaugeView: View {
+    var usedFraction: Double
+
+    private static let size = CGSize(width: 6, height: 18)
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color.primary.opacity(0.2))
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color.primary)
+                .frame(height: Self.size.height * min(max(usedFraction, 0), 1))
+        }
+        .frame(width: Self.size.width, height: Self.size.height)
     }
 }
 

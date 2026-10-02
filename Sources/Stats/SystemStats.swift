@@ -28,9 +28,13 @@ final class SystemStats {
     private(set) var cpuHistory: [Double] = []
     private let maxHistoryCount = ChartMetrics.sampleCount
 
-    /// Disk space in bytes. Purgeable space counts as free, matching Finder.
-    private(set) var diskUsed: Int64 = 0
+    /// Disk space in bytes. "Free" includes purgeable space, matching Finder.
+    private(set) var diskFree: Int64 = 0
     private(set) var diskTotal: Int64 = 0
+
+    /// Memory in bytes. "Used" matches Activity Monitor: app memory + wired + compressed.
+    private(set) var memoryUsed: UInt64 = 0
+    let memoryTotal: UInt64 = ProcessInfo.processInfo.physicalMemory
 
     /// Network speed in bytes/sec
     private var prevNetBytes: (inBytes: UInt64, outBytes: UInt64)?
@@ -42,6 +46,7 @@ final class SystemStats {
 
     func refresh() {
         readDisk()
+        readMemory()
         readNetwork()
         // The first reading only seeds the deltas and yields no sample
         if let cpu = readCPU() {
@@ -113,7 +118,27 @@ final class SystemStats {
               let total = values.volumeTotalCapacity,
               let free = values.volumeAvailableCapacityForImportantUsage else { return }
         diskTotal = Int64(total)
-        diskUsed = Int64(total) - free
+        diskFree = free
+    }
+
+    // MARK: – Memory
+
+    private func readMemory() {
+        var vmStats = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size
+        )
+        let kr = withUnsafeMutablePointer(to: &vmStats) { ptr in
+            ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+        guard kr == KERN_SUCCESS else { return }
+        let pageSize = UInt64(vm_kernel_page_size)
+        let internalPages = UInt64(vmStats.internal_page_count)
+        let appPages = internalPages - min(UInt64(vmStats.purgeable_count), internalPages)
+        let pages = appPages + UInt64(vmStats.wire_count) + UInt64(vmStats.compressor_page_count)
+        memoryUsed = min(pages * pageSize, memoryTotal)
     }
 
     // MARK: – CPU

@@ -8,12 +8,17 @@ A lightweight macOS menu bar app that keeps essential system metrics always visi
 
 Stats lives in your menu bar and displays four widgets side by side:
 
-- **Claude usage** — Three stacked dots (green / orange / red) that light up based on your Claude Code usage over the current 5-hour window (green below 50%, orange below 80%, red at 80% or above). The dots dim when the data is stale. This widget only appears if Claude Code is installed (`~/.claude`).
-- **CPU usage** — A rolling line chart showing your processor activity over the last 5 minutes. Helps you quickly spot if something is consuming too many resources.
-- **Network speed** — A mirrored chart showing upload speed on top and download speed on the bottom. Useful to monitor ongoing transfers or detect unexpected network activity.
-- **Disk space** — A pie chart showing how much storage is used vs free on your main drive.
+- **CPU usage** — A rolling line chart showing your processor activity over the last 5 minutes, on a fixed 0–100% scale.
+- **Network speed** — A mirrored chart showing upload speed on top and download speed on the bottom. Loopback, VPN tunnels and VM bridges are ignored so traffic is neither inflated by local connections nor counted twice.
+- **Memory** — A vertical gauge filled to the share of RAM in use.
+- **Disk space** — A pie chart showing how much storage is used vs available on your main drive (purgeable space counts as available, like in Finder).
 
-Clicking on the menu bar icon opens a popover with quick actions (Activity Monitor, Quit, Uninstall) and the app version. When Claude Code is installed, the popover also shows a **Claude Usage** section at the top with your 5-hour and weekly usage (percentage plus reset time), updated live while the popover is open. The app checks for updates automatically and shows an update button in the popover when a new version is available.
+Clicking on the menu bar icon opens a popover, updated live while it is open:
+
+- **Claude Usage** — your 5-hour and weekly Claude Code usage (percentage plus reset time). Only shown if Claude Code is installed (`~/.claude`); the quota is fetched while the popover is open.
+- **Live figures** — CPU %, memory used / total, current download and upload speed, the peak speed and the process that used the network most over the last 5 minutes, and free disk space.
+- **Top processes** — the five heaviest processes by CPU (as a share of the whole machine), memory, or network traffic over the last 5 minutes. Click one of your own processes to quit it.
+- Quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
 
