@@ -14,6 +14,10 @@ private let PF_ROUTE: Int32 = 17
 private let NET_RT_IFLIST2: Int32 = 6
 private let RTM_IFINFO2: UInt8 = 0x12
 
+/// Interfaces whose traffic is either local or already counted on a physical
+/// interface: loopback, VPN tunnels, and bridges/VM taps that NAT out through en*.
+private let ignoredInterfacePrefixes = ["lo", "utun", "ipsec", "bridge", "vmenet"]
+
 final class SystemStats {
 
     // MARK: – State for delta-based metrics
@@ -24,7 +28,7 @@ final class SystemStats {
     private(set) var cpuHistory: [Double] = []
     private let maxHistoryCount = ChartMetrics.sampleCount
 
-    /// Disk space in bytes
+    /// Disk space in bytes. Purgeable space counts as free, matching Finder.
     private(set) var diskUsed: Int64 = 0
     private(set) var diskTotal: Int64 = 0
 
@@ -66,7 +70,7 @@ final class SystemStats {
 
         while ptr < end {
             let msg = ptr.withMemoryRebound(to: if_msghdr.self, capacity: 1) { $0.pointee }
-            if msg.ifm_type == RTM_IFINFO2 {
+            if msg.ifm_type == RTM_IFINFO2, !Self.isIgnoredInterface(index: msg.ifm_index) {
                 let ifm2 = ptr.withMemoryRebound(to: if_msghdr2.self, capacity: 1) { $0.pointee }
                 totalIn += UInt64(ifm2.ifm_data.ifi_ibytes)
                 totalOut += UInt64(ifm2.ifm_data.ifi_obytes)
@@ -94,14 +98,22 @@ final class SystemStats {
         prevNetTime = now
     }
 
+    private static func isIgnoredInterface(index: UInt16) -> Bool {
+        var name = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
+        guard if_indextoname(UInt32(index), &name) != nil else { return false }
+        let ifName = String(cString: name)
+        return ignoredInterfacePrefixes.contains { ifName.hasPrefix($0) }
+    }
+
     // MARK: – Disk
 
     private func readDisk() {
-        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
-              let total = attrs[.systemSize] as? Int64,
-              let free = attrs[.systemFreeSize] as? Int64 else { return }
-        diskTotal = total
-        diskUsed = total - free
+        let keys: Set<URLResourceKey> = [.volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey]
+        guard let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: keys),
+              let total = values.volumeTotalCapacity,
+              let free = values.volumeAvailableCapacityForImportantUsage else { return }
+        diskTotal = Int64(total)
+        diskUsed = Int64(total) - free
     }
 
     // MARK: – CPU
