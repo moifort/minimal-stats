@@ -233,7 +233,7 @@ enum Format {
         }
         // One decimal below 100 keeps small values readable without jitter on large ones
         let digits = decimals ?? (unit == 0 || scaled >= 100 ? 0 : 1)
-        return String(format: "%.\(digits)f %@", scaled, units[unit])
+        return String(format: "%.\(digits)f%@", scaled, units[unit])
     }
 }
 
