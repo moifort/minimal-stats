@@ -15,7 +15,6 @@ Stats lives in your menu bar and displays four widgets side by side:
 
 Clicking on the menu bar icon opens a popover, updated live while it is open:
 
-- **Claude Usage** — your 5-hour and weekly Claude Code usage (percentage plus reset time). Only shown if Claude Code is installed (`~/.claude`); the quota is fetched while the popover is open.
 - **Live figures** — CPU %, memory used / total, current download and upload speed, the peak speed and the process that used the network most over the last 5 minutes, and free disk space.
 - **Top processes** — the five heaviest processes by CPU (as a share of the whole machine), memory, or network traffic over the last 5 minutes. Click one of your own processes to quit it.
 - Quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.

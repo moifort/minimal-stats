@@ -14,7 +14,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isSamplingProcesses = false
 
     private var autoUpdater: AutoUpdater?
-    private var quotaTracker: QuotaTracker?
     private var updateInfo: AutoUpdater.UpdateInfo?
     private var panel: NSPanel?
     private var updatePanel: NSPanel?
@@ -73,11 +72,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         networkProcessTimer = netTimer
         networkProcessSampler.refresh()
 
-        // The quota is only fetched while the popover is open
-        if QuotaTracker.isClaudeCodeInstalled() {
-            quotaTracker = QuotaTracker()
-        }
-
         let updater = AutoUpdater()
         updater.onUpdateAvailable = { [weak self] info in
             self?.updateInfo = info
@@ -99,13 +93,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        quotaTracker?.refresh(force: true)
         refreshProcesses()
 
         let contentView = PopoverView(
             model: statusBarModel,
             updateAvailable: updateInfo?.latestRelease,
-            quotaTracker: quotaTracker,
             onUpdate: { [weak self] in
                 guard let self, let info = self.updateInfo else { return }
                 self.closePanel()
@@ -267,10 +259,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stats.refresh()
         applyStats()
 
-        // Process list and Claude quota are only needed while the popover is visible
+        // The process list is only needed while the popover is visible
         if panel != nil {
             refreshProcesses()
-            quotaTracker?.refresh()
         }
     }
 
