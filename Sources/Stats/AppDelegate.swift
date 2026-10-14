@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var networkProcessTimer: Timer?
     private let networkProcessSampler = NetworkProcessSampler()
+    private let processSampler = ProcessSampler()
     private var isSamplingProcesses = false
 
     private var autoUpdater: AutoUpdater?
@@ -278,11 +279,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !isSamplingProcesses else { return }
         isSamplingProcesses = true
         Task { [weak self] in
-            let processes = await ProcessSampler.sample()
+            let processes = await self?.processSampler.sample()
             guard let self else { return }
             self.isSamplingProcesses = false
-            if !processes.isEmpty {
+            if let processes {
                 self.statusBarModel.processes = processes
+            } else if self.panel != nil {
+                // Only the interval was seeded: take a second sample soon rather
+                // than leaving the list empty until the next regular tick.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                    guard let self, self.panel != nil else { return }
+                    self.refreshProcesses()
+                }
             }
         }
     }

@@ -13,6 +13,12 @@ let package = Package(
             linkerSettings: [
                 .unsafeFlags(["-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__info_plist", "-Xlinker", "Sources/Stats/Info.plist"])
             ]
+        ),
+        .testTarget(
+            name: "StatsTests",
+            dependencies: ["Stats"],
+            path: "Tests/StatsTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )
