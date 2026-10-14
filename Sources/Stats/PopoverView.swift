@@ -171,9 +171,8 @@ private struct TopProcessesSection: View {
         }
     }
 
-    @ViewBuilder
     private func rowView(_ row: Row?) -> some View {
-        let content = HStack(spacing: 6) {
+        HStack(spacing: 6) {
             Text(row?.name ?? " ")
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -183,22 +182,30 @@ private struct TopProcessesSection: View {
                 .fixedSize()
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
+            quitButton(for: row)
         }
         .font(.system(size: 12))
-        .contentShape(Rectangle())
         .padding(.vertical, 3)
         .padding(.horizontal, 4)
+    }
 
+    /// Only the user's own processes can be quit; other rows keep the space so values stay aligned.
+    @ViewBuilder
+    private func quitButton(for row: Row?) -> some View {
         if let row, row.canQuit {
             Button {
                 onQuitProcess?(row.pid, row.name)
             } label: {
-                content
+                Image(systemName: "xmark.circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16, height: 16)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Quit \(row.name)")
         } else {
-            content
+            Color.clear.frame(width: 16, height: 16)
         }
     }
 }

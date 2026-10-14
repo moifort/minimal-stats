@@ -16,7 +16,7 @@ Stats lives in your menu bar and displays four widgets side by side:
 Clicking on the menu bar icon opens a popover, updated live while it is open:
 
 - **Live figures** — CPU %, memory used / total, current download and upload speed, and disk used / total.
-- **Top processes** — the five heaviest processes by CPU (as a share of the whole machine), memory, or network traffic over the last 5 minutes. Click one of your own processes to quit it.
+- **Top processes** — the five heaviest processes by CPU (as a share of the whole machine, measured since the previous refresh like Activity Monitor), memory, or network traffic over the last 5 minutes. Your own processes have a ✕ button to quit them.
 - Quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
