@@ -3,6 +3,7 @@ import Darwin
 
 struct ProcessUsage: Identifiable {
     let pid: pid_t
+    let parentPID: pid_t
     let name: String
     /// Share of the whole machine's CPU, 0–100 (not per-core like Activity Monitor),
     /// measured over the interval since the previous sample. Nil until a process has
@@ -25,6 +26,7 @@ final class ProcessSampler {
 
     struct Snapshot {
         let name: String
+        let parentPID: pid_t
         let cpuSeconds: Double
         let memoryBytes: UInt64
         let uid: uid_t
@@ -41,7 +43,7 @@ final class ProcessSampler {
         let now = Date()
         let ownPID = getpid()
         let current = await Task.detached(priority: .utility) {
-            runCommand("/bin/ps", ["-Aceo", "pid=,cputime=,rss=,uid=,comm="]).map { Self.parse($0, ownPID: ownPID) }
+            runCommand("/bin/ps", ["-Aceo", "pid=,ppid=,cputime=,rss=,uid=,comm="]).map { Self.parse($0, ownPID: ownPID) }
         }.value
         guard let current, !current.isEmpty else { return nil }
 
@@ -64,15 +66,19 @@ final class ProcessSampler {
         var result: [pid_t: Snapshot] = [:]
         for line in output.split(separator: "\n") {
             // comm may contain spaces ("Claude Helper (Renderer)"), so it takes the remainder
-            let fields = line.split(separator: " ", maxSplits: 4, omittingEmptySubsequences: true)
-            guard fields.count == 5,
+            let fields = line.split(separator: " ", maxSplits: 5, omittingEmptySubsequences: true)
+            guard fields.count == 6,
                   let pid = pid_t(fields[0]),
-                  let cpuSeconds = cpuSeconds(String(fields[1])),
-                  let rssKB = UInt64(fields[2]),
-                  let uid = uid_t(fields[3]),
+                  let parentPID = pid_t(fields[1]),
+                  let cpuSeconds = cpuSeconds(String(fields[2])),
+                  let rssKB = UInt64(fields[3]),
+                  let uid = uid_t(fields[4]),
                   pid != ownPID
             else { continue }
-            result[pid] = Snapshot(name: String(fields[4]), cpuSeconds: cpuSeconds, memoryBytes: rssKB * 1024, uid: uid)
+            result[pid] = Snapshot(
+                name: String(fields[5]), parentPID: parentPID, cpuSeconds: cpuSeconds,
+                memoryBytes: rssKB * 1024, uid: uid
+            )
         }
         return result
     }
@@ -112,6 +118,7 @@ final class ProcessSampler {
             }
             return ProcessUsage(
                 pid: pid,
+                parentPID: now.parentPID,
                 name: now.name,
                 cpuPercent: cpuPercent,
                 memoryBytes: now.memoryBytes,

@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var networkProcessTimer: Timer?
     private let networkProcessSampler = NetworkProcessSampler()
     private let processSampler = ProcessSampler()
+    private var simulatorNameCache: [pid_t: String] = [:]
     private var isSamplingProcesses = false
 
     private var autoUpdater: AutoUpdater?
@@ -284,6 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.isSamplingProcesses = false
             if let processes {
                 self.statusBarModel.processes = processes
+                self.statusBarModel.processGroups = ProcessGroup.make(from: processes, names: self.simulatorNames(in: processes))
             } else if self.panel != nil {
                 // Only the interval was seeded: take a second sample soon rather
                 // than leaving the list empty until the next regular tick.
@@ -293,6 +295,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    /// Device names of running simulators, looked up once per launchd_sim pid.
+    private func simulatorNames(in processes: [ProcessUsage]) -> [pid_t: String] {
+        let simulators = processes.filter { $0.name == ProcessGroup.simulatorRootName }
+        for simulator in simulators where simulatorNameCache[simulator.pid] == nil {
+            simulatorNameCache[simulator.pid] = ProcessGroup.simulatorName(pid: simulator.pid).map { "Simulator · \($0)" } ?? "Simulator"
+        }
+        let live = Set(simulators.map(\.pid))
+        simulatorNameCache = simulatorNameCache.filter { live.contains($0.key) }
+        return simulatorNameCache
     }
 
     @objc private func refreshNetworkProcesses() {

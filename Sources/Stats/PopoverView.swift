@@ -123,10 +123,15 @@ private struct TopProcessesSection: View {
         let pid: pid_t
         let name: String
         let value: String
+        /// The biggest contributors inside an app, e.g. "swift-frontend 40%, clang 12%"
+        let detail: String?
+        /// Share of the machine drawn behind the row, 0–1
+        let fraction: Double
         let canQuit: Bool
     }
 
     private static let rowCount = 5
+    private static let detailCount = 3
 
     var body: some View {
         VStack(spacing: 2) {
@@ -146,36 +151,113 @@ private struct TopProcessesSection: View {
                     rowView(nil)
                 }
             }
+            othersView
         }
+    }
+
+    /// What the rows above leave out, so a load spread over a hundred small daemons
+    /// doesn't look like a list that fails to add up.
+    private var othersView: some View {
+        let others: (count: Int, value: String)? = {
+            switch model.processSort {
+            case .cpu:
+                let measured = model.processGroups.compactMap(\.cpuPercent).sorted(by: >)
+                let rest = measured.dropFirst(Self.rowCount)
+                return rest.isEmpty ? nil : (rest.count, Format.percent(rest.reduce(0, +), decimals: 1))
+            case .memory:
+                let rest = model.processGroups.map(\.memoryBytes).sorted(by: >).dropFirst(Self.rowCount)
+                return rest.isEmpty ? nil : (rest.count, Format.memory(rest.reduce(0, +)))
+            case .network:
+                return nil
+            }
+        }()
+        return HStack(spacing: 6) {
+            Text(others.map { "\($0.count) other apps & services" } ?? " ")
+            Spacer(minLength: 8)
+            Text(others?.value ?? "")
+                .monospacedDigit()
+            Color.clear.frame(width: 16, height: 1)
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .padding(.top, 2)
+        .padding(.horizontal, 4)
     }
 
     private var rows: [Row] {
         switch model.processSort {
         case .cpu:
             // Processes seen only once have no CPU figure yet
-            return model.processes
-                .compactMap { process in process.cpuPercent.map { (process, $0) } }
+            return model.processGroups
+                .compactMap { group in group.cpuPercent.map { (group, $0) } }
                 .sorted { $0.1 > $1.1 }
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.0.pid, name: $0.0.name, value: Format.percent($0.1, decimals: 1), canQuit: $0.0.isOwnedByUser) }
+                .map { group, cpu in
+                    Row(
+                        pid: group.rootPID, name: group.name, value: Format.percent(cpu, decimals: 1),
+                        detail: Self.detail(group, value: { $0.cpuPercent ?? 0 }, minimum: 0.5) { Format.percent($0) },
+                        fraction: cpu / 100, canQuit: group.canQuit
+                    )
+                }
         case .memory:
-            return model.processes
+            let total = Double(max(model.memoryTotal, 1))
+            return model.processGroups
                 .sorted { $0.memoryBytes > $1.memoryBytes }
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.pid, name: $0.name, value: Format.memory($0.memoryBytes), canQuit: $0.isOwnedByUser) }
+                .map { group in
+                    Row(
+                        pid: group.rootPID, name: group.name, value: Format.memory(group.memoryBytes),
+                        detail: Self.detail(group, value: { Double($0.memoryBytes) }, minimum: 10 * 1024 * 1024) {
+                            Format.memory(UInt64($0))
+                        },
+                        fraction: Double(group.memoryBytes) / total, canQuit: group.canQuit
+                    )
+                }
         case .network:
             let owned = Set(model.processes.filter(\.isOwnedByUser).map(\.pid))
-            return model.networkProcesses
-                .prefix(Self.rowCount)
-                .map { Row(pid: $0.pid, name: $0.name, value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)), canQuit: owned.contains($0.pid)) }
+            let top = model.networkProcesses.prefix(Self.rowCount)
+            let busiest = Double(max(top.map { $0.bytesIn + $0.bytesOut }.max() ?? 1, 1))
+            return top.map {
+                Row(
+                    pid: $0.pid, name: $0.name, value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)),
+                    detail: nil, fraction: Double($0.bytesIn + $0.bytesOut) / busiest, canQuit: owned.contains($0.pid)
+                )
+            }
         }
+    }
+
+    /// The members that weigh most in a group, merged by name so five "Claude Helper"
+    /// processes read as one figure. Nil for a group of one, whose name says it all.
+    private static func detail(
+        _ group: ProcessGroup,
+        value: (ProcessUsage) -> Double,
+        minimum: Double,
+        format: (Double) -> String
+    ) -> String? {
+        guard group.members.count > 1 else { return nil }
+        var byName: [String: Double] = [:]
+        for member in group.members { byName[member.name, default: 0] += value(member) }
+        let significant = byName.filter { $0.value >= minimum }.sorted { $0.value > $1.value }
+        guard !significant.isEmpty else { return nil }
+        let shown = significant.prefix(detailCount)
+        let shownNames = Set(shown.map(\.key))
+        let others = group.members.filter { !shownNames.contains($0.name) }.count
+        return shown.map { "\($0.key) \(format($0.value))" }.joined(separator: ", ") + (others > 0 ? " +\(others)" : "")
     }
 
     private func rowView(_ row: Row?) -> some View {
         HStack(spacing: 6) {
-            Text(row?.name ?? " ")
-                .lineLimit(1)
-                .truncationMode(.middle)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(row?.name ?? " ")
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(row?.detail ?? " ")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
             Spacer(minLength: 8)
             Text(row?.value ?? "")
                 .lineLimit(1)
@@ -187,6 +269,18 @@ private struct TopProcessesSection: View {
         .font(.system(size: 12))
         .padding(.vertical, 3)
         .padding(.horizontal, 4)
+        .background(alignment: .leading) {
+            // How much of the machine the row takes, so one heavy app stands out at a glance
+            GeometryReader { proxy in
+                let width = proxy.size.width * min(max(row?.fraction ?? 0, 0), 1)
+                // Below the corner radius a bar reads as a rendering glitch, not a value
+                if width >= 8 {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(width: width)
+                }
+            }
+        }
     }
 
     /// Only the user's own processes can be quit; other rows keep the space so values stay aligned.
