@@ -1,0 +1,29 @@
+name: Unit tests
+
+# The unit suite, called by the Tests workflow on every push and by the
+# Release workflow before it publishes. Also compiles the Mac App Store
+# flavour, whose APP_STORE code paths the suite does not build.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 📊 Unit tests
+    # Dictate's runner: GitHub's macOS 27 + Xcode 27 image. Stats targets
+    # macOS 26 and builds with any Xcode carrying Swift 6.2.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Xcode
+        uses: ./.github/actions/setup-xcode
+
+      - name: Run the unit tests
+        run: swift test
+
+      - name: Build the Mac App Store flavour
+        run: swift build -c release --scratch-path .build/app-store -Xswiftc -DAPP_STORE

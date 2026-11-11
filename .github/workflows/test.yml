@@ -1,0 +1,23 @@
+name: Tests
+
+# The unit suite on every pushed branch and on pull requests from forks.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The same job the release runs before publishing: one definition.
+  test:
+    name: 📊 Unit tests
+    # A branch of this repository is already tested by its push.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    uses: ./.github/workflows/unit-tests.yml
