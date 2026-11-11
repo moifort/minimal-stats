@@ -206,14 +206,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
 
+        // An LSUIElement app is not active: without this the alert can open behind other windows
+        NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
+        let wasLoginItem = SMAppService.mainApp.status == .enabled
         try? SMAppService.mainApp.unregister()
 
         let appURL = Bundle.main.bundleURL
-        NSWorkspace.shared.recycle([appURL]) { _, _ in
-            NSApplication.shared.terminate(nil)
+        NSWorkspace.shared.recycle([appURL]) { [weak self] _, error in
+            DispatchQueue.main.async {
+                guard let error else {
+                    NSApplication.shared.terminate(nil)
+                    return
+                }
+                // The app is still installed: keep it running, and opening at login if it did
+                if wasLoginItem {
+                    try? SMAppService.mainApp.register()
+                }
+                self?.showUninstallFailure(error)
+            }
         }
+    }
+
+    private func showUninstallFailure(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "Uninstall Failed"
+        alert.informativeText = "Stats could not be moved to the Trash: \(error.localizedDescription)"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
     }
 
     // MARK: – Auto Update Panel
