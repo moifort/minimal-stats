@@ -376,7 +376,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let processes {
                 let names = await self.simulatorNames(in: processes)
                 self.isSamplingProcesses = false
-                self.statusBarModel.processes = processes
                 self.statusBarModel.processGroups = ProcessGroup.make(from: processes, names: names)
                 return
             }

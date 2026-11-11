@@ -100,17 +100,53 @@ final class ProcessGroupTests: XCTestCase {
         XCTAssertEqual(arguments, CommandLine.arguments)
     }
 
-    // MARK: - Network tab quit button
+    // MARK: - Network tab
 
-    func testNetworkTabCannotQuitSimulatorProcesses() {
-        let quittable = ProcessGroup.quittablePIDs(in: [
-            process(2883, parent: 1, "launchd_sim", cpu: 0),
-            process(2900, parent: 2883, "SpringBoard", cpu: 0),
-            process(2950, parent: 2900, "nsurlsessiond", cpu: 0),
+    private func traffic(_ pid: pid_t, _ name: String, _ bytesIn: UInt64, _ bytesOut: UInt64) -> NetworkProcessUsage {
+        NetworkProcessUsage(pid: pid, name: name, bytesIn: bytesIn, bytesOut: bytesOut)
+    }
+
+    private lazy var groups = ProcessGroup.make(
+        from: [
             process(1221, parent: 1, "Claude", cpu: 0),
-            process(1321, parent: 1221, "Claude Helper", cpu: 0),
+            process(1321, parent: 1221, "Claude Helper (Renderer)", cpu: 0),
+            process(1709, parent: 1221, "claude", cpu: 0),
+            process(2883, parent: 1, "launchd_sim", cpu: 0),
+            process(2950, parent: 2883, "nsurlsessiond", cpu: 0),
             process(614, parent: 1, "WindowServer", cpu: 0, uid: 88),
+        ],
+        names: [2883: "Simulator · iPhone 17 Pro"]
+    )
+
+    func testTrafficIsSummedByApplication() {
+        let rows = GroupTraffic.make(from: [
+            traffic(1321, "Claude Helper (Renderer)", 40, 4),
+            traffic(1709, "claude", 10, 1),
+            traffic(1221, "Claude", 2, 0),
+            traffic(614, "WindowServer", 3, 0),
+        ], groups: groups)
+        XCTAssertEqual(rows, [
+            GroupTraffic(rootPID: 1221, name: "Claude", bytesIn: 52, bytesOut: 5, canQuit: true),
+            GroupTraffic(rootPID: 614, name: "WindowServer", bytesIn: 3, bytesOut: 0, canQuit: false),
         ])
-        XCTAssertEqual(quittable, [1221, 1321])
+    }
+
+    func testSimulatorTrafficCannotBeQuit() {
+        let rows = GroupTraffic.make(from: [traffic(2950, "nsurlsessiond", 7, 7)], groups: groups)
+        XCTAssertEqual(rows.map(\.name), ["Simulator · iPhone 17 Pro"])
+        XCTAssertEqual(rows.map(\.canQuit), [false])
+    }
+
+    func testProcessMissingFromTheListKeepsItsOwnRowWithoutQuit() {
+        let rows = GroupTraffic.make(from: [traffic(4242, "curl", 9, 1)], groups: groups)
+        XCTAssertEqual(rows, [GroupTraffic(rootPID: 4242, name: "curl", bytesIn: 9, bytesOut: 1, canQuit: false)])
+        XCTAssertEqual(GroupTraffic.make(from: [traffic(4242, "curl", 9, 1)], groups: []).count, 1)
+    }
+
+    func testEqualTrafficIsOrderedByNameThenPID() {
+        let rows = GroupTraffic.make(from: [
+            traffic(30, "b", 5, 0), traffic(20, "a", 5, 0), traffic(10, "b", 5, 0), traffic(40, "idle", 0, 0),
+        ], groups: [])
+        XCTAssertEqual(rows.map(\.rootPID), [20, 10, 30])
     }
 }

@@ -15,7 +15,6 @@ final class StatusBarModel: ObservableObject {
     @Published var memoryUsed: UInt64 = 0
     @Published var memoryTotal: UInt64 = 0
     /// Only refreshed while the popover is open
-    @Published var processes: [ProcessUsage] = []
     @Published var processGroups: [ProcessGroup] = []
     @Published var networkProcesses: [NetworkProcessUsage] = []
     /// Kept here rather than in view state so the chosen tab survives reopening the popover

@@ -94,16 +94,6 @@ struct ProcessGroup: Identifiable {
         return chain
     }
 
-    /// Pids the Network tab may offer to quit: the user's own processes, except a
-    /// simulator and everything running inside it, like their group in the other tabs.
-    static func quittablePIDs(in processes: [ProcessUsage]) -> Set<pid_t> {
-        let byPID = Dictionary(processes.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
-        return Set(processes.lazy
-            .filter { $0.isOwnedByUser }
-            .filter { !ancestors(of: $0, in: byPID).contains { $0.name == simulatorRootName } }
-            .map(\.pid))
-    }
-
     /// "iPhone 17 Pro" for a launchd_sim pid, read from the device folder in its arguments.
     static func simulatorName(pid: pid_t) -> String? {
         guard let arguments = processArguments(pid: pid),
@@ -152,5 +142,51 @@ struct ProcessGroup: Identifiable {
             index += 1
         }
         return arguments
+    }
+}
+
+/// What an app and everything it spawned sent and received, like a `ProcessGroup`
+/// for the Network tab.
+struct GroupTraffic: Identifiable, Equatable {
+    /// The group's root, or the process itself when it belongs to no known group
+    let rootPID: pid_t
+    let name: String
+    let bytesIn: UInt64
+    let bytesOut: UInt64
+    let canQuit: Bool
+
+    var id: pid_t { rootPID }
+    var totalBytes: UInt64 { bytesIn + bytesOut }
+
+    /// Sums per-process traffic by group, largest total first, then by name and pid.
+    /// Traffic is sampled all the time but the process list only while the popover
+    /// is open: a pid found in no group (it exited, or started since) stays on its
+    /// own row, which cannot be quit since nothing says who owns it now.
+    static func make(from usage: [NetworkProcessUsage], groups: [ProcessGroup]) -> [GroupTraffic] {
+        var groupOf: [pid_t: ProcessGroup] = [:]
+        for group in groups {
+            for member in group.members { groupOf[member.pid] = group }
+        }
+
+        var totals: [pid_t: GroupTraffic] = [:]
+        for process in usage {
+            let group = groupOf[process.pid]
+            let key = group?.rootPID ?? process.pid
+            let previous = totals[key]
+            totals[key] = GroupTraffic(
+                rootPID: key,
+                name: group?.name ?? process.name,
+                bytesIn: (previous?.bytesIn ?? 0) + process.bytesIn,
+                bytesOut: (previous?.bytesOut ?? 0) + process.bytesOut,
+                canQuit: group?.canQuit ?? false
+            )
+        }
+        return totals.values
+            .filter { $0.totalBytes > 0 }
+            .sorted {
+                $0.totalBytes != $1.totalBytes
+                    ? $0.totalBytes > $1.totalBytes
+                    : ProcessGroup.isOrdered($0.name, $0.rootPID, before: $1.name, $1.rootPID)
+            }
     }
 }

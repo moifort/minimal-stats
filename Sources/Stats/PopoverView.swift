@@ -163,10 +163,9 @@ private struct TopProcessesSection: View {
                 .prefix(Self.rowCount)
                 .map { Row(pid: $0.rootPID, name: Format.processName($0.name), value: Format.memory($0.memoryBytes), canQuit: $0.canQuit) }
         case .network:
-            let quittable = ProcessGroup.quittablePIDs(in: model.processes)
-            return model.networkProcesses
+            return GroupTraffic.make(from: model.networkProcesses, groups: model.processGroups)
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.pid, name: Format.processName($0.name), value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)), canQuit: quittable.contains($0.pid)) }
+                .map { Row(pid: $0.rootPID, name: Format.processName($0.name), value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)), canQuit: $0.canQuit) }
         }
     }
 
