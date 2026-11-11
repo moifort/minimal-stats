@@ -48,7 +48,8 @@ final class NetworkProcessSampler {
 
         Task { [weak self] in
             let counters = await Task.detached(priority: .utility) {
-                runCommand("/usr/bin/nettop", ["-P", "-L", "1", "-x", "-J", "bytes_in,bytes_out"])
+                // nettop takes about 5 s to produce its single sample
+                runCommand("/usr/bin/nettop", ["-P", "-L", "1", "-x", "-J", "bytes_in,bytes_out"], timeout: 20)
                     .map(Self.parse)
             }.value
             guard let self else { return }

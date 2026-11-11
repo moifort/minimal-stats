@@ -138,7 +138,10 @@ final class ProcessSampler {
 }
 
 /// Runs a command synchronously and returns its stdout, or nil on failure.
-func runCommand(_ path: String, _ arguments: [String]) -> String? {
+/// A command still running after `timeout` seconds is terminated (then killed one
+/// second later if it ignores SIGTERM) and yields nil, so a stuck `ps` or `nettop`
+/// cannot leave its caller waiting forever.
+func runCommand(_ path: String, _ arguments: [String], timeout: TimeInterval = 10) -> String? {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: path)
     process.arguments = arguments
@@ -151,8 +154,18 @@ func runCommand(_ path: String, _ arguments: [String]) -> String? {
     } catch {
         return nil
     }
+    // Checking isRunning first keeps a signal from reaching a recycled pid
+    let watchdog = DispatchWorkItem {
+        guard process.isRunning else { return }
+        process.terminate()
+        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+            if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+        }
+    }
+    DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: watchdog)
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit()
-    guard process.terminationStatus == 0 else { return nil }
+    watchdog.cancel()
+    guard process.terminationReason == .exit, process.terminationStatus == 0 else { return nil }
     return String(data: data, encoding: .utf8)
 }

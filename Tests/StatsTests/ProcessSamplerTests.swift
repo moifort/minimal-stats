@@ -66,4 +66,22 @@ final class ProcessSamplerTests: XCTestCase {
         let usage = ProcessSampler.usage(current: current, previous: previous, elapsed: 2, coreCount: 8, currentUID: 501)
         XCTAssertNil(usage[0].cpuPercent)
     }
+
+    // MARK: - runCommand
+
+    func testRunCommandReturnsOutput() {
+        XCTAssertEqual(runCommand("/bin/echo", ["hello"]), "hello\n")
+    }
+
+    func testRunCommandGivesUpOnAStuckCommand() {
+        let start = Date()
+        XCTAssertNil(runCommand("/bin/sleep", ["10"], timeout: 0.3))
+        XCTAssertLessThan(Date().timeIntervalSince(start), 2)
+    }
+
+    func testRunCommandKillsACommandThatIgnoresSIGTERM() {
+        let start = Date()
+        XCTAssertNil(runCommand("/bin/sh", ["-c", "trap '' TERM; exec /bin/sleep 10"], timeout: 0.3))
+        XCTAssertLessThan(Date().timeIntervalSince(start), 3)
+    }
 }
