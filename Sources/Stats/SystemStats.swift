@@ -37,7 +37,11 @@ final class SystemStats {
     let memoryTotal: UInt64 = ProcessInfo.processInfo.physicalMemory
 
     /// Network speed in bytes/sec
-    private var prevNetBytes: (inBytes: UInt64, outBytes: UInt64)?
+    struct InterfaceBytes: Equatable {
+        let inBytes: UInt64
+        let outBytes: UInt64
+    }
+    private var prevNetBytes: [String: InterfaceBytes]?
     private var prevNetTime: Date?
     private(set) var netInHistory: [Double] = []   // bytes/sec
     private(set) var netOutHistory: [Double] = []  // bytes/sec
@@ -68,17 +72,26 @@ final class SystemStats {
         defer { buf.deallocate() }
         guard sysctl(&mib, UInt32(mib.count), buf, &len, nil, 0) == 0 else { return }
 
-        var totalIn: UInt64 = 0
-        var totalOut: UInt64 = 0
+        var current: [String: InterfaceBytes] = [:]
         var ptr = buf
         let end = buf.advanced(by: len)
 
         while ptr < end {
             let msg = ptr.withMemoryRebound(to: if_msghdr.self, capacity: 1) { $0.pointee }
-            if msg.ifm_type == RTM_IFINFO2, !Self.isIgnoredInterface(index: msg.ifm_index) {
+            // A zero length would loop forever on the same message
+            guard msg.ifm_msglen > 0 else { break }
+            if msg.ifm_type == RTM_IFINFO2 {
+                // An interface whose name cannot be read is kept, keyed by its index
+                let name = Self.interfaceName(index: msg.ifm_index) ?? "#\(msg.ifm_index)"
+                guard !ignoredInterfacePrefixes.contains(where: { name.hasPrefix($0) }) else {
+                    ptr = ptr.advanced(by: Int(msg.ifm_msglen))
+                    continue
+                }
                 let ifm2 = ptr.withMemoryRebound(to: if_msghdr2.self, capacity: 1) { $0.pointee }
-                totalIn += UInt64(ifm2.ifm_data.ifi_ibytes)
-                totalOut += UInt64(ifm2.ifm_data.ifi_obytes)
+                current[name] = InterfaceBytes(
+                    inBytes: UInt64(ifm2.ifm_data.ifi_ibytes),
+                    outBytes: UInt64(ifm2.ifm_data.ifi_obytes)
+                )
             }
             ptr = ptr.advanced(by: Int(msg.ifm_msglen))
         }
@@ -87,10 +100,9 @@ final class SystemStats {
         if let prev = prevNetBytes, let prevTime = prevNetTime {
             let dt = now.timeIntervalSince(prevTime)
             if dt > 0 {
-                let inSpeed = Double(totalIn &- prev.inBytes) / dt
-                let outSpeed = Double(totalOut &- prev.outBytes) / dt
-                netInHistory.append(inSpeed)
-                netOutHistory.append(outSpeed)
+                let delta = Self.networkDelta(current: current, previous: prev)
+                netInHistory.append(Double(delta.inBytes) / dt)
+                netOutHistory.append(Double(delta.outBytes) / dt)
                 if netInHistory.count > maxHistoryCount {
                     netInHistory.removeFirst(netInHistory.count - maxHistoryCount)
                 }
@@ -99,15 +111,28 @@ final class SystemStats {
                 }
             }
         }
-        prevNetBytes = (totalIn, totalOut)
+        prevNetBytes = current
         prevNetTime = now
     }
 
-    private static func isIgnoredInterface(index: UInt16) -> Bool {
+    /// Bytes transferred between two readings, summed per interface. Only interfaces
+    /// present in both count: one that appears brings its lifetime totals, one that
+    /// disappears takes them away. A counter that went down (interface reset) adds nothing.
+    static func networkDelta(current: [String: InterfaceBytes], previous: [String: InterfaceBytes]) -> InterfaceBytes {
+        var inBytes: UInt64 = 0
+        var outBytes: UInt64 = 0
+        for (name, now) in current {
+            guard let before = previous[name] else { continue }
+            if now.inBytes >= before.inBytes { inBytes += now.inBytes - before.inBytes }
+            if now.outBytes >= before.outBytes { outBytes += now.outBytes - before.outBytes }
+        }
+        return InterfaceBytes(inBytes: inBytes, outBytes: outBytes)
+    }
+
+    private static func interfaceName(index: UInt16) -> String? {
         var name = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
-        guard if_indextoname(UInt32(index), &name) != nil else { return false }
-        let ifName = String(cString: name)
-        return ignoredInterfacePrefixes.contains { ifName.hasPrefix($0) }
+        guard if_indextoname(UInt32(index), &name) != nil else { return nil }
+        return String(cString: name)
     }
 
     // MARK: – Disk
