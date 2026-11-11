@@ -43,6 +43,14 @@ cp Sources/Stats/Info.plist "$APP/Contents/Info.plist"
 cp Sources/Stats/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$APP/Contents/Info.plist"
+# English and French: en.lproj and fr.lproj, read through Bundle.main.
+xcrun xcstringstool compile Sources/Stats/Localizable.xcstrings --output-directory "$APP/Contents/Resources"
+# English is the source language, so the catalog writes no en.lproj: one is
+# needed all the same for the App Store to list English among the languages.
+for LANG_DIR in en fr; do
+  mkdir -p "$APP/Contents/Resources/$LANG_DIR.lproj"
+  printf '"CFBundleDisplayName" = "Stats";\n"CFBundleName" = "Stats";\n' > "$APP/Contents/Resources/$LANG_DIR.lproj/InfoPlist.strings"
+done
 
 if [ "$FLAVOUR" = app-store ]; then
   # The store reads the icon from a compiled asset catalog (CFBundleIconName);

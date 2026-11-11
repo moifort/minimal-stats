@@ -24,12 +24,12 @@ final class AutoUpdater {
 
         var errorDescription: String? {
             switch self {
-            case .extractionFailed: return "The downloaded archive could not be extracted."
-            case .appBundleNotFound: return "No app bundle was found in the downloaded archive."
-            case .badResponse(let status): return "The server answered with HTTP status \(status)."
-            case .untrustedURL: return "The download did not come from GitHub over HTTPS."
-            case .wrongBundleIdentifier: return "The downloaded app is not Stats."
-            case .notNewer: return "The downloaded app is not newer than the installed one."
+            case .extractionFailed: return String(localized: "The downloaded archive could not be extracted.")
+            case .appBundleNotFound: return String(localized: "No app bundle was found in the downloaded archive.")
+            case .badResponse(let status): return String(localized: "The server answered with HTTP status \(status).")
+            case .untrustedURL: return String(localized: "The download did not come from GitHub over HTTPS.")
+            case .wrongBundleIdentifier: return String(localized: "The downloaded app is not Stats.")
+            case .notNewer: return String(localized: "The downloaded app is not newer than the installed one.")
             }
         }
     }
@@ -175,8 +175,8 @@ final class AutoUpdater {
         DispatchQueue.main.async {
             self.isUpdating = false
             let alert = NSAlert()
-            alert.messageText = "Update Failed"
-            alert.informativeText = "The update could not be installed: \(error.localizedDescription)"
+            alert.messageText = String(localized: "Update Failed")
+            alert.informativeText = String(localized: "The update could not be installed: \(error.localizedDescription)")
             alert.alertStyle = .warning
             alert.addButton(withTitle: "OK")
             NSApp.activate(ignoringOtherApps: true)

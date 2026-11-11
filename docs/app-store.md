@@ -112,7 +112,7 @@ gh variable set APP_STORE_UPLOAD --body true
 - `listing.rb`: name, subtitle, description, keywords, promotional text,
   what's new, URLs, categories (Utilities, Developer Tools), age rating,
   copyright, free price, every territory, for each locale of `listing.yml`
-  (English and French: the app speaks English only);
+  (English and French, the app's two languages);
 - `review.rb`: contact copied from Shiori, notes for the reviewer;
 - `version.rb`: the App Store version takes the tag's number (release workflow);
 - `screenshots.rb`: uploads `docs/app-store-screenshots/<locale>/*.jpg`;

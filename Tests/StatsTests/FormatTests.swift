@@ -57,3 +57,19 @@ final class StatusBarModelTests: XCTestCase {
         )
     }
 }
+
+final class FrenchFormatTests: XCTestCase {
+
+    override func tearDown() {
+        Format.french = false
+        super.tearDown()
+    }
+
+    func testFrenchInterfaceWritesFrenchUnitsAndDecimalComma() {
+        Format.french = true
+        XCTAssertEqual(Format.bytes(1_200_000_000), "1,2Go")
+        XCTAssertEqual(Format.memory(512), "512o")
+        XCTAssertEqual(Format.percent(12.4, decimals: 1), "12,4%")
+        XCTAssertEqual(Format.readWrite(1_200_000_000, 340_000_000), "L 1,2Go  É 340Mo")
+    }
+}

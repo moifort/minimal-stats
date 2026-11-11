@@ -50,6 +50,12 @@ release's only `.zip`, and the site links to
   `Distribution` hides what the sandbox refuses (`docs/app-store.md`).
 - **Disk image**: `scripts/build-dmg.sh`, `make dmg VERSION=x.y.z`.
 - **Icon**: `scripts/icon/build-icns.sh` writes `AppIcon.icns`.
+- **Languages**: English and French. Strings in English in the code
+  (`String(localized:)`, `LocalizedStringKey`), French in
+  `Sources/Stats/Localizable.xcstrings`, compiled into `fr.lproj` by
+  `scripts/build-app.sh`. `swift run` and the tests stay in English. Figures
+  follow the interface's language (`Format.french`: 1,2Go). Check that a new
+  French text fits the 290-point popover.
 - **Site**: `site/`, published by `.github/workflows/pages.yml`. Texts in
   French in `index.html`, the 24 other languages in
   `scripts/site/translations_*.py`, then `python3 scripts/site/build-i18n.py`.
