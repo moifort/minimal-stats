@@ -120,11 +120,9 @@ final class AutoUpdater {
                 try? FileManager.default.removeItem(at: backupPath)
                 try? FileManager.default.removeItem(at: tempDir)
 
-                let appPath = currentApp.path
-                let script = "sleep 1 && open \"\(appPath)\""
                 let proc = Process()
                 proc.executableURL = URL(fileURLWithPath: "/bin/sh")
-                proc.arguments = ["-c", script]
+                proc.arguments = Self.relaunchArguments(pid: getpid(), appPath: currentApp.path)
                 try proc.run()
 
                 DispatchQueue.main.async {
@@ -167,6 +165,15 @@ final class AutoUpdater {
             let version = tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
             return Release(version: version, downloadURL: downloadURL, body: body)
         }
+    }
+
+    /// `sh` arguments that wait for `pid` to exit (10 s at most), then open the app.
+    /// The pid and path are positional parameters, never interpolated into the script,
+    /// so quotes, `$` or backticks in the path are harmless. Opening while the old
+    /// instance still runs would only reactivate it.
+    static func relaunchArguments(pid: pid_t, appPath: String, opener: String = "/usr/bin/open") -> [String] {
+        let script = #"i=0; while kill -0 "$1" 2>/dev/null && [ $i -lt 100 ]; do sleep 0.1; i=$((i+1)); done; exec "$3" "$2""#
+        return ["-c", script, "sh", String(pid), appPath, opener]
     }
 
     static func isVersion(_ a: String, newerThan b: String) -> Bool {
