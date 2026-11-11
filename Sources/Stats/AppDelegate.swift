@@ -465,7 +465,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshByteCounters() {
         networkProcessSampler.refresh()
-        diskProcessSampler.refresh()
+        if Distribution.measuresProcesses {
+            diskProcessSampler.refresh()
+        }
     }
 }
 
