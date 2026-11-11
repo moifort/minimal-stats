@@ -305,11 +305,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { [weak self] in
             let processes = await self?.processSampler.sample()
             guard let self else { return }
-            self.isSamplingProcesses = false
             if let processes {
+                let names = await self.simulatorNames(in: processes)
+                self.isSamplingProcesses = false
                 self.statusBarModel.processes = processes
-                self.statusBarModel.processGroups = ProcessGroup.make(from: processes, names: self.simulatorNames(in: processes))
-            } else if self.panel != nil {
+                self.statusBarModel.processGroups = ProcessGroup.make(from: processes, names: names)
+                return
+            }
+            self.isSamplingProcesses = false
+            if self.panel != nil {
                 // Only the interval was seeded: take a second sample soon rather
                 // than leaving the list empty until the next regular tick.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
@@ -321,13 +325,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Device names of running simulators, looked up once per launchd_sim pid.
-    private func simulatorNames(in processes: [ProcessUsage]) -> [pid_t: String] {
-        let simulators = processes.filter { $0.name == ProcessGroup.simulatorRootName }
-        for simulator in simulators where simulatorNameCache[simulator.pid] == nil {
-            simulatorNameCache[simulator.pid] = ProcessGroup.simulatorName(pid: simulator.pid).map { "Simulator · \($0)" } ?? "Simulator"
+    /// The lookup runs `ps`, so it happens off the main thread.
+    private func simulatorNames(in processes: [ProcessUsage]) async -> [pid_t: String] {
+        let simulators = Set(processes.filter { $0.name == ProcessGroup.simulatorRootName }.map(\.pid))
+        let unknown = simulators.filter { simulatorNameCache[$0] == nil }
+        if !unknown.isEmpty {
+            let found = await Task.detached(priority: .utility) {
+                Dictionary(uniqueKeysWithValues: unknown.map { pid in
+                    (pid, ProcessGroup.simulatorName(pid: pid).map { "Simulator · \($0)" } ?? "Simulator")
+                })
+            }.value
+            simulatorNameCache.merge(found) { _, new in new }
         }
-        let live = Set(simulators.map(\.pid))
-        simulatorNameCache = simulatorNameCache.filter { live.contains($0.key) }
+        simulatorNameCache = simulatorNameCache.filter { simulators.contains($0.key) }
         return simulatorNameCache
     }
 
