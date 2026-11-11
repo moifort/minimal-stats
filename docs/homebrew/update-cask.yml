@@ -1,0 +1,64 @@
+name: Update the casks
+
+# For moifort/homebrew-tap, replacing .github/workflows/update-cask.yml: the
+# same hourly bump as Dictate's, for every cask listed in the matrix. Not
+# pushed from here (docs/homebrew/README.md).
+#
+# Every hour, compare each cask with its app's latest release; when a newer
+# version is out, download its disk image, rewrite version and sha256, commit.
+# No secret needed: the workflow only writes to this repository.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-cask
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      # One at a time: each run commits and pushes.
+      max-parallel: 1
+      matrix:
+        include:
+          - cask: dictate
+            repo: moifort/dictate
+            asset: 'Dictate-$VERSION.dmg'
+          - cask: minimal-stats
+            repo: moifort/minimal-stats
+            asset: 'Stats.dmg'
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Bump the cask to the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CASK: Casks/${{ matrix.cask }}.rb
+          REPO: ${{ matrix.repo }}
+          ASSET: ${{ matrix.asset }}
+        run: |
+          set -euo pipefail
+          git pull --ff-only
+          CURRENT=$(sed -n 's/^  version "\(.*\)"$/\1/p' "$CASK")
+          LATEST=$(gh release view --repo "$REPO" --json tagName -q '.tagName' | sed 's/^v//')
+          echo "${{ matrix.cask }}: $CURRENT — latest release: $LATEST"
+          if [ "$CURRENT" = "$LATEST" ] && ! grep -q 'sha256 :no_check' "$CASK"; then
+            echo "Nothing to do"; exit 0
+          fi
+          FILE="${ASSET//\$VERSION/$LATEST}"
+          gh release download "v$LATEST" --repo "$REPO" --pattern "$FILE" --clobber
+          SHA=$(sha256sum "$FILE" | cut -d' ' -f1)
+          rm -f "$FILE"
+          sed -i "s/^  version \".*\"$/  version \"$LATEST\"/; s/^  sha256 .*$/  sha256 \"$SHA\"/" "$CASK"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$CASK"
+          git commit -m "${{ matrix.cask }} $LATEST"
+          git push
