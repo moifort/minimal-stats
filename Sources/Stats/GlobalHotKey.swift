@@ -18,6 +18,9 @@ final class GlobalHotKey {
         modifiers: UInt32(controlKey | optionKey | cmdKey)
     )
 
+    /// Escape alone, registered only while the popover is open
+    static let escape = Shortcut(keyCode: UInt32(kVK_Escape), modifiers: 0)
+
     private static let signature: OSType = 0x5354_4154 // 'STAT'
     private static var nextID: UInt32 = 1
 

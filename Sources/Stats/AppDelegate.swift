@@ -23,6 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var popoverHotKey: GlobalHotKey?
+    /// Held only while the popover is open
+    private var escapeHotKey: GlobalHotKey?
 
     // MARK: – Lifecycle
 
@@ -206,7 +208,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.view.layer?.backgroundColor = .clear
         let contentSize = controller.view.fittingSize
 
-        let p = PopoverPanel(
+        let p = NSPanel(
             contentRect: NSRect(origin: .zero, size: contentSize),
             styleMask: [.nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
@@ -242,10 +244,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             p.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
-        p.onCancel = { [weak self] in self?.closePanel() }
-        // Key without activating Stats, so Escape reaches the panel
         p.makeKeyAndOrderFront(nil)
         panel = p
+
+        // The panel never becomes key (a key window would tint the selected tab
+        // with the accent colour), so Escape is taken as a hot key while it is open.
+        escapeHotKey = GlobalHotKey(GlobalHotKey.escape) { [weak self] in
+            self?.closePanel()
+        }
 
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             self?.closePanel()
@@ -262,6 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func closePanel() {
         panel?.close()
         panel = nil
+        escapeHotKey = nil
         if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
         if let m = localMonitor { NSEvent.removeMonitor(m); localMonitor = nil }
     }
@@ -438,20 +445,3 @@ private final class ClickThroughHostingView<Content: View>: NSHostingView<Conten
     override func accessibilityChildren() -> [Any]? { nil }
 }
 
-/// The popover's borderless panel. Borderless windows cannot become key by
-/// default, which left Escape with nowhere to go.
-private final class PopoverPanel: NSPanel {
-    var onCancel: (() -> Void)?
-
-    override var canBecomeKey: Bool { true }
-
-    override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, event.keyCode == Self.escapeKeyCode {
-            onCancel?()
-            return
-        }
-        super.sendEvent(event)
-    }
-
-    private static let escapeKeyCode: UInt16 = 53
-}

@@ -9,6 +9,11 @@ final class GlobalHotKeyTests: XCTestCase {
         XCTAssertEqual(GlobalHotKey.togglePopover.modifiers, UInt32(controlKey | optionKey | cmdKey))
     }
 
+    func testEscapeCanBeRegisteredWithoutModifiers() {
+        XCTAssertEqual(GlobalHotKey.escape, GlobalHotKey.Shortcut(keyCode: UInt32(kVK_Escape), modifiers: 0))
+        XCTAssertNotNil(GlobalHotKey(GlobalHotKey.escape) {})
+    }
+
     func testShortcutIsHeldUntilReleased() {
         // An unusual combination, so a running Stats or another app cannot hold it
         let shortcut = GlobalHotKey.Shortcut(keyCode: UInt32(kVK_F19), modifiers: UInt32(controlKey | optionKey | cmdKey | shiftKey))
