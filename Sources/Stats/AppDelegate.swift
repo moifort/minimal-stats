@@ -325,7 +325,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Device names of running simulators, looked up once per launchd_sim pid.
-    /// The lookup runs `ps`, so it happens off the main thread.
+    /// The lookup reads files and process arguments, so it happens off the main thread.
     private func simulatorNames(in processes: [ProcessUsage]) async -> [pid_t: String] {
         let simulators = Set(processes.filter { $0.name == ProcessGroup.simulatorRootName }.map(\.pid))
         let unknown = simulators.filter { simulatorNameCache[$0] == nil }

@@ -80,4 +80,23 @@ final class ProcessGroupTests: XCTestCase {
         ].shuffled())
         XCTAssertEqual(groups[0].members.map(\.pid), [3, 4, 100, 5])
     }
+
+    // MARK: - Simulator device folder
+
+    func testFindsDeviceFolderInPathsWithSpaces() {
+        let arguments = [
+            "/Library/Developer/CoreSimulator/Volumes/iOS_23A/Profiles/Runtimes/iOS 27.2.simruntime/Contents/Resources/RuntimeRoot/sbin/launchd_sim",
+            "/Users/Jane Doe/Library/Developer/CoreSimulator/Devices/17C55769-48DC-444C-8E31-7C005B062908/data/var/run/launchd_bootstrap.plist",
+        ]
+        XCTAssertEqual(
+            ProcessGroup.simulatorDeviceFolder(arguments: arguments),
+            "/Users/Jane Doe/Library/Developer/CoreSimulator/Devices/17C55769-48DC-444C-8E31-7C005B062908/"
+        )
+        XCTAssertNil(ProcessGroup.simulatorDeviceFolder(arguments: ["launchd_sim", "--help"]))
+    }
+
+    func testReadsOwnProcessArguments() {
+        let arguments = ProcessGroup.processArguments(pid: getpid())
+        XCTAssertEqual(arguments, CommandLine.arguments)
+    }
 }

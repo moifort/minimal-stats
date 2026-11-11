@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 /// An application and everything it spawned: Claude with its helpers and the shells,
 /// compilers and tools its sessions run, or a simulator with its dozens of daemons.
@@ -91,15 +92,51 @@ struct ProcessGroup: Identifiable {
 
     /// "iPhone 17 Pro" for a launchd_sim pid, read from the device folder in its arguments.
     static func simulatorName(pid: pid_t) -> String? {
-        guard let args = runCommand("/bin/ps", ["-o", "args=", "-p", String(pid)]),
-              let range = args.range(of: #"/Devices/[0-9A-F-]+/"#, options: .regularExpression)
+        guard let arguments = processArguments(pid: pid),
+              let deviceFolder = simulatorDeviceFolder(arguments: arguments)
         else { return nil }
-        let deviceFolder = args[..<range.upperBound].split(separator: " ").last.map(String.init) ?? ""
         let plist = URL(fileURLWithPath: deviceFolder).appendingPathComponent("device.plist")
         guard let data = try? Data(contentsOf: plist),
               let info = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
               let name = info["name"] as? String
         else { return nil }
         return name
+    }
+
+    /// The `…/Devices/<UDID>/` folder named in one of the arguments. Each argument
+    /// is matched on its own, so spaces in the path (or in the runtime path that
+    /// precedes it) do not matter.
+    static func simulatorDeviceFolder(arguments: [String]) -> String? {
+        for argument in arguments {
+            if let range = argument.range(of: #"^.*?/Devices/[0-9A-F-]+/"#, options: .regularExpression) {
+                return String(argument[range])
+            }
+        }
+        return nil
+    }
+
+    /// A process's argv, read with sysctl(KERN_PROCARGS2): argc, the executable
+    /// path, NUL padding, then the NUL-terminated arguments.
+    static func processArguments(pid: pid_t) -> [String]? {
+        var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
+        var size = 0
+        guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return nil }
+        var buffer = [UInt8](repeating: 0, count: size)
+        guard sysctl(&mib, 3, &buffer, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return nil }
+
+        let argc = buffer.withUnsafeBytes { $0.loadUnaligned(as: Int32.self) }
+        var index = MemoryLayout<Int32>.size
+        // Skip the executable path and the padding after it
+        while index < size, buffer[index] != 0 { index += 1 }
+        while index < size, buffer[index] == 0 { index += 1 }
+
+        var arguments: [String] = []
+        while arguments.count < argc, index < size {
+            let start = index
+            while index < size, buffer[index] != 0 { index += 1 }
+            arguments.append(String(decoding: buffer[start..<index], as: UTF8.self))
+            index += 1
+        }
+        return arguments
     }
 }
