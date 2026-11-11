@@ -151,16 +151,16 @@ private struct TopProcessesSection: View {
             // Processes seen only once have no CPU figure yet
             return ProcessGroup.sortedByCPU(model.processGroups)
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.group.rootPID, name: $0.group.name, value: Format.percent($0.cpuPercent, decimals: 1), canQuit: $0.group.canQuit) }
+                .map { Row(pid: $0.group.rootPID, name: Format.processName($0.group.name), value: Format.percent($0.cpuPercent, decimals: 1), canQuit: $0.group.canQuit) }
         case .memory:
             return ProcessGroup.sortedByMemory(model.processGroups)
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.rootPID, name: $0.name, value: Format.memory($0.memoryBytes), canQuit: $0.canQuit) }
+                .map { Row(pid: $0.rootPID, name: Format.processName($0.name), value: Format.memory($0.memoryBytes), canQuit: $0.canQuit) }
         case .network:
             let quittable = ProcessGroup.quittablePIDs(in: model.processes)
             return model.networkProcesses
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.pid, name: $0.name, value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)), canQuit: quittable.contains($0.pid)) }
+                .map { Row(pid: $0.pid, name: Format.processName($0.name), value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)), canQuit: quittable.contains($0.pid)) }
         }
     }
 
@@ -168,7 +168,7 @@ private struct TopProcessesSection: View {
         HStack(spacing: 6) {
             Text(row?.name ?? " ")
                 .lineLimit(1)
-                .truncationMode(.middle)
+                .truncationMode(.tail)
             Spacer(minLength: 8)
             Text(row?.value ?? "")
                 .lineLimit(1)
@@ -219,6 +219,14 @@ enum Format {
     /// Binary units (1 GB = 1024³ B), matching Activity Monitor's memory figures
     static func memory(_ value: UInt64, decimals: Int? = nil) -> String {
         scaled(Double(value), base: 1024, decimals: decimals)
+    }
+
+    /// "com.apple.DriverKit-AppleBCMWLAN" reads as "DriverKit-AppleBCMWLAN": the
+    /// prefix is shared by hundreds of system processes and says nothing.
+    static func processName(_ name: String) -> String {
+        let prefix = "com.apple."
+        guard name.hasPrefix(prefix), name.count > prefix.count else { return name }
+        return String(name.dropFirst(prefix.count))
     }
 
     static func inOut(_ bytesIn: Double, _ bytesOut: Double, suffix: String = "") -> String {
