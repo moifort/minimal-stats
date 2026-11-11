@@ -120,19 +120,25 @@ struct NetworkChartView: View {
     var inHistory: [Double]
     var outHistory: [Double]
 
-    private var maxSpeed: Double {
-        max(inHistory.max() ?? 1, outHistory.max() ?? 1, 1)
-    }
-
     var body: some View {
+        let scaled = Self.scaled(inHistory: inHistory, outHistory: outHistory)
         VStack(spacing: 0) {
             // Upload — grows from bottom of top half (flipped)
-            SparklineChart(history: outHistory, maxValue: maxSpeed, height: 9)
+            SparklineChart(history: scaled.outHistory, maxValue: scaled.maxValue, height: 9)
                 .scaleEffect(y: -1)
 
             // Download — grows from top of bottom half (normal)
-            SparklineChart(history: inHistory, maxValue: maxSpeed, height: 9)
+            SparklineChart(history: scaled.inHistory, maxValue: scaled.maxValue, height: 9)
         }
+    }
+
+    /// Square-root scale, shared by both halves: after a 40 MB/s burst, 20 KB/s
+    /// still fills 2% of the height instead of 0.05%, and the order of the
+    /// samples is kept.
+    static func scaled(inHistory: [Double], outHistory: [Double]) -> (inHistory: [Double], outHistory: [Double], maxValue: Double) {
+        let root = { (speed: Double) in max(speed, 0).squareRoot() }
+        let peak = max(inHistory.max() ?? 1, outHistory.max() ?? 1, 1)
+        return (inHistory.map(root), outHistory.map(root), root(peak))
     }
 }
 
