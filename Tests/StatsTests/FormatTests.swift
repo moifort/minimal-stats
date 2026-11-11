@@ -23,13 +23,11 @@ final class ProcessSortTests: XCTestCase {
         XCTAssertNil(ProcessSort.cpu.help)
         XCTAssertNil(ProcessSort.memory.help)
         XCTAssertEqual(ProcessSort.network.help, "Data received and sent over the last 5 minutes")
-        XCTAssertEqual(ProcessSort.disk.help?.hasPrefix("Data read and written over the last 5 minutes, by your own apps only"), true)
+        XCTAssertEqual(ProcessSort.disk.help?.hasPrefix("Data read (↓) and written (↑) over the last 5 minutes, by your own apps only"), true)
     }
 
-    func testDiskNotationCannotBeMistakenForNetworkArrows() {
+    func testDiskFiguresReadOutInWords() {
         XCTAssertEqual(Format.readWrite(1_200_000_000, 340_000_000), "read 1.2GB, written 340MB")
-        XCTAssertFalse(Format.readWrite(1, 1).contains("↓"))
-        XCTAssertFalse(Format.readWrite(1, 1).contains("↑"))
     }
 }
 

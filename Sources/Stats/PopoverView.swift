@@ -120,7 +120,7 @@ private struct TopProcessesSection: View {
         let name: String
         let value: String
         let canQuit: Bool
-        /// The Disk tab's bytes, drawn with icons rather than letters
+        /// The Disk tab's bytes, drawn with arrows and read out in words
         var readWritten: (read: Double, written: Double)? = nil
     }
 
@@ -188,12 +188,12 @@ private struct TopProcessesSection: View {
         .padding(.horizontal, 4)
     }
 
-    /// Read with eyeglasses, written with a pencil: the network's arrows
-    /// already mean received and sent. VoiceOver reads the words.
+    /// The Disk tab uses the network's arrows: ↓ read, ↑ written. VoiceOver
+    /// reads the words.
     private func valueText(_ row: Row?) -> Text {
         guard let row else { return Text("") }
         guard let bytes = row.readWritten else { return Text(row.value) }
-        return Text("\(Image(systemName: "eyeglasses")) \(Format.bytes(bytes.read))  \(Image(systemName: "pencil")) \(Format.bytes(bytes.written))")
+        return Text(Format.inOut(bytes.read, bytes.written))
             .accessibilityLabel(row.value)
     }
 
@@ -311,7 +311,7 @@ enum Format {
     }
 
     /// The Disk tab's figures in words, for VoiceOver: the popover draws them
-    /// with eyeglasses and a pencil.
+    /// with the network's arrows, ↓ read and ↑ written.
     static func readWrite(_ bytesRead: Double, _ bytesWritten: Double) -> String {
         String(localized: "read \(bytes(bytesRead)), written \(bytes(bytesWritten))")
     }

@@ -60,7 +60,7 @@ enum ProcessSort: String, CaseIterable {
         case .cpu, .memory: return nil
         case .network: return String(localized: "Data received and sent over the last \(Self.windowText(NetworkProcessSampler.window))")
         case .disk:
-            return String(localized: "Data read and written over the last \(Self.windowText(DiskProcessSampler.window)), by your own apps only: macOS does not report it for system processes")
+            return String(localized: "Data read (↓) and written (↑) over the last \(Self.windowText(DiskProcessSampler.window)), by your own apps only: macOS does not report it for system processes")
         }
     }
 
