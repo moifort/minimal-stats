@@ -9,16 +9,18 @@ A lightweight macOS menu bar app that keeps essential system metrics always visi
 Stats lives in your menu bar and displays four widgets side by side:
 
 - **CPU usage** — A rolling line chart showing your processor activity over the last 5 minutes, on a fixed 0–100% scale.
-- **Network speed** — A mirrored chart showing upload speed on top and download speed on the bottom. Loopback, VPN tunnels and VM bridges are ignored so traffic is neither inflated by local connections nor counted twice.
+- **Network speed** — A mirrored chart showing upload speed on top and download speed on the bottom, on a square-root scale so light traffic stays visible after a burst. Loopback, VPN tunnels and VM bridges are ignored so traffic is neither inflated by local connections nor counted twice.
 - **Memory** — A vertical gauge filled to the share of RAM in use.
 - **Disk space** — A pie chart showing how much storage is used vs available on your main drive (purgeable space counts as available, like in Finder).
 
 Clicking on the menu bar icon, or pressing **⌃⌥⌘S** (Control-Option-Command-S) from any app, opens a popover, updated live while it is open:
 
 - **Live figures** — CPU %, memory used / total, current download and upload speed, and disk used / total.
-- **Top processes** — the five heaviest processes by CPU (as a share of the whole machine, measured since the previous refresh like Activity Monitor), memory, or network traffic over the last 5 minutes. Your own processes have a ✕ button to quit them.
+- **Top apps** — the five heaviest apps by CPU (as a share of the whole machine, measured since the previous refresh like Activity Monitor), memory, or network traffic over the last 5 minutes. Each row is an app with everything it launched (Claude with its helpers and the tools it runs, a simulator with its daemons). Your own apps have a ✕ button to quit them. Hover the Network and Disk tabs for the period they cover.
 - **Disk activity** — the Disk tab lists the five apps that read (R) and wrote (W) the most over the last 5 minutes. macOS only reports disk activity per process to their owner, so this tab covers your own apps; system processes (Spotlight indexing, backups, kernel) are not counted.
-- Quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
+- Quick actions (Activity Monitor, Quit Stats) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
+
+Press **Escape** to close the popover. **Right-click** the menu bar icon (or Control-click it) for a menu with **Uninstall…** and **Quit Stats**. With VoiceOver, the menu bar icon reads the four figures.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
 
@@ -52,4 +54,4 @@ The app checks for updates automatically once a day. When a new version is avail
 
 ### Uninstall
 
-Click the menu bar icon and select **Uninstall** — this removes the login item and moves the app to the Trash. You can also manually delete `Stats.app` from your Applications folder.
+Right-click the menu bar icon and select **Uninstall…** — this removes the login item and moves the app to the Trash. You can also manually delete `Stats.app` from your Applications folder.
