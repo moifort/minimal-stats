@@ -28,13 +28,17 @@ The app starts automatically at login and runs silently in the background with n
 
 ### Download
 
-1. Go to the [latest release](https://github.com/moifort/minimal-stats/releases/latest)
-2. Download `Stats.app.zip`
-3. Unzip and move `Stats.app` to your Applications folder
-4. Since the app is not notarized, macOS will block it on first launch. Use one of these methods to open it:
-   - **Right-click > Open** — right-click the app, select Open, then click Open in the dialog
-   - **System Settings** — go to **Privacy & Security**, scroll down, and click **Open Anyway**
-   - **Terminal** — run `xattr -cr /Applications/Stats.app` then open normally
+1. Download [`Stats.dmg`](https://github.com/moifort/minimal-stats/releases/latest/download/Stats.dmg) from the [latest release](https://github.com/moifort/minimal-stats/releases/latest)
+2. Open it and drag **Stats** onto **Applications**
+3. Open Stats from Applications: it is signed with a Developer ID and notarized by Apple, so it opens like any other app
+
+Requires macOS 26 or later on a Mac with Apple silicon.
+
+### Homebrew
+
+```sh
+brew install --cask moifort/tap/minimal-stats
+```
 
 ### From source
 
@@ -43,7 +47,7 @@ Requires Xcode command line tools and macOS 26+.
 ```sh
 git clone https://github.com/moifort/minimal-stats.git
 cd minimal-stats
-make install
+make install VERSION=1.0.0
 ```
 
 This builds the app and copies it to `/Applications`.
@@ -55,3 +59,7 @@ The app checks for updates automatically once a day. When a new version is avail
 ### Uninstall
 
 Right-click the menu bar icon and select **Uninstall…** — this removes the login item and moves the app to the Trash. You can also manually delete `Stats.app` from your Applications folder.
+
+## License
+
+[MIT](LICENSE), © 2026 Polyforms.
