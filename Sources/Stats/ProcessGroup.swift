@@ -46,7 +46,7 @@ struct ProcessGroup: Identifiable {
                     return a != b ? a > b : isOrdered($0.name, $0.pid, before: $1.name, $1.pid)
                 },
                 // SIGTERM on launchd_sim would leave the simulator in a broken state
-                canQuit: root.isOwnedByUser && !isSimulator
+                canQuit: Distribution.canQuitProcesses && root.isOwnedByUser && !isSimulator
             )
         }
         // Dictionary order changes from one sample to the next

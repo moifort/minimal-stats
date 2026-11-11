@@ -42,6 +42,9 @@ final class ProcessSampler {
     func sample() async -> [ProcessUsage]? {
         let now = Date()
         let ownPID = getpid()
+        guard Distribution.measuresProcesses else {
+            return await Task.detached(priority: .utility) { Self.listWithoutFigures(ownPID: ownPID) }.value
+        }
         let current = await Task.detached(priority: .utility) {
             runCommand("/bin/ps", ["-Aceo", "pid=,ppid=,cputime=,rss=,uid=,comm="]).map { Self.parse($0, ownPID: ownPID) }
         }.value

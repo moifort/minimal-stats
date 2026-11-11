@@ -4,3 +4,6 @@
 *.app
 *.app.zip
 .claude/
+
+build/
+*.dmg
