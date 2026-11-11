@@ -1,0 +1,58 @@
+# The Mac App Store listing, one entry per App Store locale, read by listing.rb.
+# Limits: name and subtitle 30 characters, keywords 100, promotional 170,
+# description and whats_new 4000, and the store refuses emojis in them.
+#
+# `%{name}` is the public App Store name, which is not chosen yet: "Stats"
+# alone is almost certainly taken. listing.rb takes it from APP_STORE_NAME
+# (docs/app-store.md). The app itself stays "Stats" in the menu bar and in
+# Applications. A locale can write its own name instead of %{name}.
+#
+# The app speaks English only: the listing exists in English, and in French,
+# the author's language. Describes the App Store build: no CPU or Memory
+# process lists, no quit buttons (docs/app-store.md).
+en-US:
+  name: "%{name}"
+  subtitle: "CPU, network, memory and disk"
+  keywords: "cpu,network,memory,disk,ram,monitor,menu bar,system,usage,bandwidth,activity,performance"
+  promotional: "Four tiny live charts in your menu bar: CPU, network, memory and disk. One click for the figures and the apps using the network."
+  whats_new: |
+    First version on the Mac App Store.
+  description: |
+    Stats keeps your Mac's vital signs in the menu bar, always visible, never in the way.
+
+    FOUR WIDGETS, SIDE BY SIDE
+    • CPU: a rolling chart of the last five minutes, on a fixed 0 to 100% scale.
+    • Network: download and upload mirrored on one chart. Loopback, VPN tunnels and virtual machine bridges are left out, so traffic is never counted twice.
+    • Memory: a gauge filled to the share of RAM in use.
+    • Disk: a pie of the space used on your startup disk, purgeable space counted as free, like in Finder.
+
+    ONE CLICK FOR THE DETAILS
+    The popover shows the live figures: CPU percentage, memory used, download and upload speed, disk used. Below them, the apps that used the network over the last five minutes, each with everything it spawned grouped under it.
+
+    QUIET BY DESIGN
+    No window, no Dock icon, no account. Monochrome charts that match the menu bar in light and dark mode. Stats measures everything on your Mac and sends nothing anywhere.
+
+    Free and open source, made by Polyforms.
+fr-FR:
+  name: "%{name}"
+  subtitle: "Processeur, réseau, mémoire"
+  keywords: "processeur,cpu,réseau,mémoire,disque,ram,moniteur,barre des menus,système,débit,activité"
+  promotional: "Quatre petits graphiques en direct dans la barre des menus : processeur, réseau, mémoire et disque. Un clic pour les chiffres et les apps qui utilisent le réseau."
+  whats_new: |
+    Première version sur le Mac App Store.
+  description: |
+    Stats garde les signes vitaux de votre Mac dans la barre des menus, toujours visibles, jamais encombrants.
+
+    QUATRE WIDGETS CÔTE À CÔTE
+    • Processeur : un graphique des cinq dernières minutes, sur une échelle fixe de 0 à 100 %.
+    • Réseau : réception et envoi en miroir sur un même graphique. La boucle locale, les tunnels VPN et les ponts de machines virtuelles sont écartés, pour ne jamais compter deux fois le même trafic.
+    • Mémoire : une jauge remplie à la part de mémoire utilisée.
+    • Disque : un camembert de l'espace occupé sur le disque de démarrage, l'espace purgeable compté comme libre, comme dans le Finder.
+
+    UN CLIC POUR LE DÉTAIL
+    Le popover affiche les chiffres en direct : pourcentage du processeur, mémoire utilisée, débit de réception et d'envoi, disque occupé. En dessous, les apps qui ont utilisé le réseau ces cinq dernières minutes, chacune avec tout ce qu'elle a lancé regroupé sous elle.
+
+    DISCRET PAR CONCEPTION
+    Pas de fenêtre, pas d'icône dans le Dock, pas de compte. Des graphiques monochromes accordés à la barre des menus, en clair comme en sombre. Stats mesure tout sur votre Mac et n'envoie rien nulle part.
+
+    Gratuit et open source, réalisé par Polyforms.
