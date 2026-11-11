@@ -43,8 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.frame.size = view.frame.size
         }
 
-        // Register as login item
-        try? SMAppService.mainApp.register()
+        registerLoginItemOnFirstLaunch()
 
         // .common mode keeps the charts ticking during event tracking
         let statsTimer = Timer(
@@ -80,6 +79,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         updater.startPeriodicChecks()
         autoUpdater = updater
+    }
+
+    // MARK: – Login item
+
+    private static let loginItemRegisteredKey = "didRegisterLoginItem"
+
+    /// Opens at login from the first launch on, but only once: an item the user
+    /// later removes from System Settings (status back to notRegistered) stays removed.
+    private func registerLoginItemOnFirstLaunch() {
+        let defaults = UserDefaults.standard
+        let service = SMAppService.mainApp
+        switch Self.loginItemAction(status: service.status, registeredBefore: defaults.bool(forKey: Self.loginItemRegisteredKey)) {
+        case .none:
+            break
+        case .markRegistered:
+            defaults.set(true, forKey: Self.loginItemRegisteredKey)
+        case .register:
+            // A failure (unsigned build, app outside /Applications…) is retried next launch
+            if (try? service.register()) != nil {
+                defaults.set(true, forKey: Self.loginItemRegisteredKey)
+            }
+        }
+    }
+
+    enum LoginItemAction: Equatable {
+        case none, markRegistered, register
+    }
+
+    /// Already enabled, or disabled by the user (requiresApproval): only remember it,
+    /// which also covers installs registered by versions without the flag.
+    nonisolated static func loginItemAction(status: SMAppService.Status, registeredBefore: Bool) -> LoginItemAction {
+        if registeredBefore { return .none }
+        switch status {
+        case .enabled, .requiresApproval: return .markRegistered
+        case .notRegistered, .notFound: return .register
+        @unknown default: return .none
+        }
     }
 
     private func openActivityMonitor() {
@@ -217,6 +253,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.recycle([appURL]) { [weak self] _, error in
             DispatchQueue.main.async {
                 guard let error else {
+                    // A reinstall should open at login again
+                    UserDefaults.standard.removeObject(forKey: Self.loginItemRegisteredKey)
                     NSApplication.shared.terminate(nil)
                     return
                 }
