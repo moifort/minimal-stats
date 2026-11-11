@@ -148,7 +148,9 @@
   for (const el of document.querySelectorAll(".reveal")) revealer.observe(el);
 
   // The GitHub API is public for this; failing silently keeps the generic label.
-  // The download links already point at releases/latest/download/Stats.dmg.
+  // The download links point at the latest release's page, which always
+  // exists; they take its disk image directly once it has one (from 1.12 on),
+  // as Dictate's page does.
   fetch("https://api.github.com/repos/moifort/minimal-stats/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
     .then((r) => (r.ok ? r.json() : null))
     .then((release) => {
@@ -156,6 +158,10 @@
       const version = release.tag_name.replace(/^v/, "");
       for (const el of document.querySelectorAll("[data-version]")) el.textContent = (texts.version || "Version {v}").replace("{v}", version);
       for (const el of document.querySelectorAll("[data-version-short]")) el.textContent = `v${version}`;
+      const dmg = (release.assets || []).find((a) => a.name.endsWith(".dmg"));
+      if (dmg) {
+        for (const a of document.querySelectorAll("[data-download]")) a.href = dmg.browser_download_url;
+      }
     })
     .catch(() => {});
 })();
