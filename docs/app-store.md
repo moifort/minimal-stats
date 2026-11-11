@@ -138,11 +138,14 @@ Store build itself: the widgets (`StatusBarView` drawn in a dark
 `NSHostingView`) and the popover window (`screencapture -l`), opened in
 English and in French (`-AppleLanguages "(fr)"`).
 
+Minimal Stats 1.12.3 (build 108) was submitted for review on 2026-11-11,
+released automatically once approved.
+
 ### Left to do, in order
 
-1. **Secrets and variable** above, then **push a tag**: the release uploads
-   the build, then `ruby scripts/app-store/submit.rb <version> <build>`
-   submits it for review.
+1. For each later version, **push a tag**: the release uploads the build,
+   then `ruby scripts/app-store/submit.rb <version> <build>` submits it for
+   review (the secrets and `APP_STORE_UPLOAD` are set).
 
 Once the app is live, set `APP_STORE_URL` in `site/main.js` to
 `https://apps.apple.com/app/id6833477318?mt=12`: the site shows the App
