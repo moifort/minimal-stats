@@ -11,9 +11,7 @@ identifier `com.polyforms.stats`.
 `Sources/Stats/StatsAppStore.entitlements`: the App Sandbox, and
 `network.client` for `nettop` (below). `Distribution` in
 [Sources/Stats/Distribution.swift](../Sources/Stats/Distribution.swift) then
-hides what the sandbox refuses. The global shortcut (⌃⌥⌘S, Carbon
-`RegisterEventHotKey`) needs no permission and stays, as in Dictate's
-App Store build.
+hides what the sandbox refuses.
 
 Measured on 2026-11-11, macOS 27.2, in a sandboxed build (an ad-hoc signed
 probe with the same entitlements running every call Stats makes, then the
