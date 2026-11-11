@@ -127,17 +127,16 @@ keeps "Stats" in the menu bar and in Applications. Its Mac App Store profile,
 
 Done on 2026-11-11: identifier registered, record created, `profile.rb`,
 `listing.rb` (en-US, fr-FR, Utilities and Developer Tools, no age rating,
-free, 175 territories), `review.rb`. A package built locally with the
-profile passed `altool --validate-app` with no error; nothing was uploaded.
+free, 175 territories), `review.rb`, and App Privacy published as Data Not
+Collected. A package built locally with the profile passed
+`altool --validate-app` with no error; nothing was uploaded.
 
 ### Left to do, in order
 
-1. **App Privacy** (no API): Data Not Collected. Nothing at all: no
-   analytics, no crash reporting, no network requests in this build.
-2. **Screenshots**: 2880×1800 (or 2560×1600, 1440×900) of the menu bar and
+1. **Screenshots**: 2880×1800 (or 2560×1600, 1440×900) of the menu bar and
    the popover, in `docs/app-store-screenshots/en-US/` and `fr-FR/`, then
    `ruby scripts/app-store/screenshots.rb`.
-3. **Secrets and variable** above, then **push a tag**: the release uploads
+2. **Secrets and variable** above, then **push a tag**: the release uploads
    the build, then `ruby scripts/app-store/submit.rb <version> <build>`
    submits it for review.
 
