@@ -1,4 +1,5 @@
 import AppKit
+import Security
 import os
 
 final class AutoUpdater {
@@ -21,6 +22,8 @@ final class AutoUpdater {
         case untrustedURL
         case wrongBundleIdentifier
         case notNewer
+        case invalidSignature
+        case otherDeveloper
 
         var errorDescription: String? {
             switch self {
@@ -30,6 +33,8 @@ final class AutoUpdater {
             case .untrustedURL: return String(localized: "The download did not come from GitHub over HTTPS.")
             case .wrongBundleIdentifier: return String(localized: "The downloaded app is not Stats.")
             case .notNewer: return String(localized: "The downloaded app is not newer than the installed one.")
+            case .invalidSignature: return String(localized: "The downloaded app is not properly signed.")
+            case .otherDeveloper: return String(localized: "The downloaded app is not signed by the developer of Stats.")
             }
         }
     }
@@ -137,6 +142,10 @@ final class AutoUpdater {
                     bundleIdentifier: Bundle.main.bundleIdentifier ?? "",
                     currentVersion: Self.currentVersion
                 )
+                try Self.validateSignature(
+                    downloaded: Self.signature(of: newApp),
+                    running: Self.signature(of: Bundle.main.bundleURL)
+                )
 
                 let currentApp = Bundle.main.bundleURL
                 let backupPath = currentApp.deletingLastPathComponent().appendingPathComponent("Stats.app.bak")
@@ -232,6 +241,40 @@ final class AutoUpdater {
         guard let version = info["CFBundleShortVersionString"] as? String,
               isVersion(version, newerThan: currentVersion)
         else { throw UpdateError.notNewer }
+    }
+
+    /// What the code signature of a bundle says: whether it holds (every file
+    /// sealed, nothing modified), and the Team ID of the certificate, nil for an
+    /// ad-hoc signature.
+    struct Signature: Equatable {
+        let isValid: Bool
+        let teamIdentifier: String?
+    }
+
+    /// Reads and checks a bundle's signature with the Security framework, as
+    /// `codesign --verify --deep --strict` does.
+    static func signature(of url: URL) -> Signature {
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess, let code else {
+            return Signature(isValid: false, teamIdentifier: nil)
+        }
+        let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSCheckNestedCode | kSecCSStrictValidate)
+        let isValid = SecStaticCodeCheckValidity(code, flags, nil) == errSecSuccess
+        var info: CFDictionary?
+        SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info)
+        let team = (info as? [String: Any])?[kSecCodeInfoTeamIdentifier as String] as? String
+        return Signature(isValid: isValid, teamIdentifier: team)
+    }
+
+    /// The downloaded bundle's signature must hold, and come from the same
+    /// team as the running copy's. Releases up to 1.11 were signed ad hoc: such
+    /// a copy has no team to compare, and takes any valid signature, which
+    /// moves it to the Developer ID builds.
+    static func validateSignature(downloaded: Signature, running: Signature) throws {
+        guard downloaded.isValid else { throw UpdateError.invalidSignature }
+        if let team = running.teamIdentifier, downloaded.teamIdentifier != team {
+            throw UpdateError.otherDeveloper
+        }
     }
 
     /// `sh` arguments that wait for `pid` to exit (10 s at most), then open the app.
