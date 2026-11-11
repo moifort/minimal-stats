@@ -4,11 +4,6 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
-	<key>CFBundleLocalizations</key>
-	<array>
-		<string>en</string>
-		<string>fr</string>
-	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Stats</string>
 	<key>CFBundleExecutable</key>
@@ -17,14 +12,19 @@
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.polyforms.stats</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>fr</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>Stats</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.11.0</string>
+	<string>1.12.0</string>
 	<key>CFBundleVersion</key>
-	<string>1.11.0</string>
+	<string>1.12.0</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationCategoryType</key>
