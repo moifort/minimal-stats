@@ -99,4 +99,18 @@ final class ProcessGroupTests: XCTestCase {
         let arguments = ProcessGroup.processArguments(pid: getpid())
         XCTAssertEqual(arguments, CommandLine.arguments)
     }
+
+    // MARK: - Network tab quit button
+
+    func testNetworkTabCannotQuitSimulatorProcesses() {
+        let quittable = ProcessGroup.quittablePIDs(in: [
+            process(2883, parent: 1, "launchd_sim", cpu: 0),
+            process(2900, parent: 2883, "SpringBoard", cpu: 0),
+            process(2950, parent: 2900, "nsurlsessiond", cpu: 0),
+            process(1221, parent: 1, "Claude", cpu: 0),
+            process(1321, parent: 1221, "Claude Helper", cpu: 0),
+            process(614, parent: 1, "WindowServer", cpu: 0, uid: 88),
+        ])
+        XCTAssertEqual(quittable, [1221, 1321])
+    }
 }

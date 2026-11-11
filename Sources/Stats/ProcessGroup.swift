@@ -22,17 +22,7 @@ struct ProcessGroup: Identifiable {
     /// known parent). `names` overrides a root's displayed name, e.g. for simulators.
     static func make(from processes: [ProcessUsage], names: [pid_t: String] = [:]) -> [ProcessGroup] {
         let byPID = Dictionary(processes.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
-
-        func root(of process: ProcessUsage) -> ProcessUsage {
-            var current = process
-            var visited: Set<pid_t> = [current.pid]
-            while current.parentPID > 1,
-                  let parent = byPID[current.parentPID],
-                  visited.insert(parent.pid).inserted {
-                current = parent
-            }
-            return current
-        }
+        func root(of process: ProcessUsage) -> ProcessUsage { ancestors(of: process, in: byPID).last ?? process }
 
         var members: [pid_t: [ProcessUsage]] = [:]
         var roots: [pid_t: ProcessUsage] = [:]
@@ -89,6 +79,30 @@ struct ProcessGroup: Identifiable {
     }
 
     static let simulatorRootName = "launchd_sim"
+
+    /// The process itself, then its parent, and so on up to the child of launchd
+    /// (or the last ancestor that is still in the list).
+    private static func ancestors(of process: ProcessUsage, in byPID: [pid_t: ProcessUsage]) -> [ProcessUsage] {
+        var chain = [process]
+        var visited: Set<pid_t> = [process.pid]
+        while let current = chain.last,
+              current.parentPID > 1,
+              let parent = byPID[current.parentPID],
+              visited.insert(parent.pid).inserted {
+            chain.append(parent)
+        }
+        return chain
+    }
+
+    /// Pids the Network tab may offer to quit: the user's own processes, except a
+    /// simulator and everything running inside it, like their group in the other tabs.
+    static func quittablePIDs(in processes: [ProcessUsage]) -> Set<pid_t> {
+        let byPID = Dictionary(processes.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
+        return Set(processes.lazy
+            .filter { $0.isOwnedByUser }
+            .filter { !ancestors(of: $0, in: byPID).contains { $0.name == simulatorRootName } }
+            .map(\.pid))
+    }
 
     /// "iPhone 17 Pro" for a launchd_sim pid, read from the device folder in its arguments.
     static func simulatorName(pid: pid_t) -> String? {
