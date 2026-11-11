@@ -22,9 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updatePanel: NSPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
-    private var popoverHotKey: GlobalHotKey?
-    /// Held only while the popover is open
-    private var escapeHotKey: GlobalHotKey?
 
     // MARK: – Lifecycle
 
@@ -53,11 +50,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if Distribution.registersLoginItemAtFirstLaunch {
             registerLoginItemOnFirstLaunch()
-        }
-
-        // Unavailable when another app already owns the shortcut; clicks still work
-        popoverHotKey = GlobalHotKey(GlobalHotKey.togglePopover) { [weak self] in
-            self?.togglePopover()
         }
 
         // .common mode keeps the charts ticking during event tracking
@@ -279,12 +271,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         p.makeKeyAndOrderFront(nil)
         panel = p
 
-        // The panel never becomes key (a key window would tint the selected tab
-        // with the accent colour), so Escape is taken as a hot key while it is open.
-        escapeHotKey = GlobalHotKey(GlobalHotKey.escape) { [weak self] in
-            self?.closePanel()
-        }
-
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             self?.closePanel()
         }
@@ -300,7 +286,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func closePanel() {
         panel?.close()
         panel = nil
-        escapeHotKey = nil
         if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
         if let m = localMonitor { NSEvent.removeMonitor(m); localMonitor = nil }
     }
