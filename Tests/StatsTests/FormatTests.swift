@@ -16,3 +16,12 @@ final class FormatTests: XCTestCase {
         XCTAssertEqual(Format.processName("com.apple."), "com.apple.")
     }
 }
+
+final class ProcessSortTests: XCTestCase {
+
+    func testOnlyCumulatedTabsExplainTheirPeriod() {
+        XCTAssertNil(ProcessSort.cpu.help)
+        XCTAssertNil(ProcessSort.memory.help)
+        XCTAssertEqual(ProcessSort.network.help, "Data received and sent over the last 5 minutes")
+    }
+}

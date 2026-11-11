@@ -127,7 +127,13 @@ private struct TopProcessesSection: View {
     var body: some View {
         VStack(spacing: 2) {
             Picker("", selection: $model.processSort) {
-                ForEach(ProcessSort.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                ForEach(ProcessSort.allCases, id: \.self) { sort in
+                    if let help = sort.help {
+                        Text(sort.rawValue).help(help).tag(sort)
+                    } else {
+                        Text(sort.rawValue).tag(sort)
+                    }
+                }
             }
             .pickerStyle(.segmented)
             .labelsHidden()

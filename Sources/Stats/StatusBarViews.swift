@@ -32,6 +32,19 @@ final class StatusBarModel: ObservableObject {
 
 enum ProcessSort: String, CaseIterable {
     case cpu = "CPU", memory = "Memory", network = "Network"
+
+    /// CPU and Memory are instantaneous; a cumulated tab says over which period.
+    var help: String? {
+        switch self {
+        case .cpu, .memory: return nil
+        case .network: return "Data received and sent over the last \(Self.windowText(NetworkProcessSampler.window))"
+        }
+    }
+
+    private static func windowText(_ window: TimeInterval) -> String {
+        let minutes = Int(window / 60)
+        return minutes == 1 ? "minute" : "\(minutes) minutes"
+    }
 }
 
 // MARK: – Combined Status Bar View
