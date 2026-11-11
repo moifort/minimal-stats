@@ -167,6 +167,10 @@ private struct TopProcessesSection: View {
             return GroupTraffic.make(from: model.networkProcesses, groups: model.processGroups)
                 .prefix(Self.rowCount)
                 .map { Row(pid: $0.rootPID, name: Format.processName($0.name), value: Format.inOut(Double($0.bytesIn), Double($0.bytesOut)), canQuit: $0.canQuit) }
+        case .disk:
+            return GroupTraffic.make(from: model.diskProcesses, groups: model.processGroups)
+                .prefix(Self.rowCount)
+                .map { Row(pid: $0.rootPID, name: Format.processName($0.name), value: Format.readWrite(Double($0.bytesIn), Double($0.bytesOut)), canQuit: $0.canQuit) }
         }
     }
 
@@ -242,6 +246,11 @@ enum Format {
 
     static func inOut(_ bytesIn: Double, _ bytesOut: Double, suffix: String = "") -> String {
         "↓ \(bytes(bytesIn))\(suffix)  ↑ \(bytes(bytesOut))\(suffix)"
+    }
+
+    /// R for read and W for written: arrows already mean received and sent
+    static func readWrite(_ bytesRead: Double, _ bytesWritten: Double) -> String {
+        "R \(bytes(bytesRead))  W \(bytes(bytesWritten))"
     }
 
     private static func scaled(_ value: Double, base: Double, decimals: Int?) -> String {

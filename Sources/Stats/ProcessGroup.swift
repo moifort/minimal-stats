@@ -145,8 +145,8 @@ struct ProcessGroup: Identifiable {
     }
 }
 
-/// What an app and everything it spawned sent and received, like a `ProcessGroup`
-/// for the Network tab.
+/// What an app and everything it spawned sent and received, or read and wrote,
+/// like a `ProcessGroup` for the Network and Disk tabs.
 struct GroupTraffic: Identifiable, Equatable {
     /// The group's root, or the process itself when it belongs to no known group
     let rootPID: pid_t
@@ -158,11 +158,11 @@ struct GroupTraffic: Identifiable, Equatable {
     var id: pid_t { rootPID }
     var totalBytes: UInt64 { bytesIn + bytesOut }
 
-    /// Sums per-process traffic by group, largest total first, then by name and pid.
-    /// Traffic is sampled all the time but the process list only while the popover
+    /// Sums per-process bytes by group, largest total first, then by name and pid.
+    /// Bytes are sampled all the time but the process list only while the popover
     /// is open: a pid found in no group (it exited, or started since) stays on its
     /// own row, which cannot be quit since nothing says who owns it now.
-    static func make(from usage: [NetworkProcessUsage], groups: [ProcessGroup]) -> [GroupTraffic] {
+    static func make(from usage: [ProcessBytes], groups: [ProcessGroup]) -> [GroupTraffic] {
         var groupOf: [pid_t: ProcessGroup] = [:]
         for group in groups {
             for member in group.members { groupOf[member.pid] = group }

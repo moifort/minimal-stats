@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var networkProcessTimer: Timer?
     private let networkProcessSampler = NetworkProcessSampler()
+    private let diskProcessSampler = DiskProcessSampler()
     private let processSampler = ProcessSampler()
     private var simulatorNameCache: [pid_t: String] = [:]
     private var isSamplingProcesses = false
@@ -66,22 +67,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         RunLoop.main.add(statsTimer, forMode: .common)
         timer = statsTimer
 
-        // Per-process network traffic is sampled continuously so the popover can
-        // show who used the network over the whole window, not just since opening.
+        // Per-process network and disk bytes are sampled continuously so the popover
+        // can show who used them over the whole window, not just since opening.
         networkProcessSampler.onUpdate = { [weak self] usage in
             self?.statusBarModel.networkProcesses = usage
+        }
+        diskProcessSampler.onUpdate = { [weak self] usage in
+            self?.statusBarModel.diskProcesses = usage
         }
         let netTimer = Timer(
             timeInterval: NetworkProcessSampler.sampleInterval,
             target: self,
-            selector: #selector(refreshNetworkProcesses),
+            selector: #selector(refreshByteCounters),
             userInfo: nil,
             repeats: true
         )
         netTimer.tolerance = 1
         RunLoop.main.add(netTimer, forMode: .common)
         networkProcessTimer = netTimer
-        networkProcessSampler.refresh()
+        refreshByteCounters()
 
         let updater = AutoUpdater()
         updater.onUpdateAvailable = { [weak self] info in
@@ -420,8 +424,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return simulatorNameCache
     }
 
-    @objc private func refreshNetworkProcesses() {
+    @objc private func refreshByteCounters() {
         networkProcessSampler.refresh()
+        diskProcessSampler.refresh()
     }
 }
 

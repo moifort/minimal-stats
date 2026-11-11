@@ -16,7 +16,9 @@ final class StatusBarModel: ObservableObject {
     @Published var memoryTotal: UInt64 = 0
     /// Only refreshed while the popover is open
     @Published var processGroups: [ProcessGroup] = []
-    @Published var networkProcesses: [NetworkProcessUsage] = []
+    /// Sampled all the time, like the per-process disk figures
+    @Published var networkProcesses: [ProcessBytes] = []
+    @Published var diskProcesses: [ProcessBytes] = []
     /// Kept here rather than in view state so the chosen tab survives reopening the popover
     @Published var processSort: ProcessSort = .cpu
 
@@ -40,13 +42,15 @@ final class StatusBarModel: ObservableObject {
 }
 
 enum ProcessSort: String, CaseIterable {
-    case cpu = "CPU", memory = "Memory", network = "Network"
+    case cpu = "CPU", memory = "Memory", network = "Network", disk = "Disk"
 
     /// CPU and Memory are instantaneous; a cumulated tab says over which period.
     var help: String? {
         switch self {
         case .cpu, .memory: return nil
         case .network: return "Data received and sent over the last \(Self.windowText(NetworkProcessSampler.window))"
+        case .disk:
+            return "Data read (R) and written (W) over the last \(Self.windowText(DiskProcessSampler.window)), by your own apps only: macOS does not report it for system processes"
         }
     }
 

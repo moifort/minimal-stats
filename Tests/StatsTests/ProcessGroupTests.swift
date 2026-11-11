@@ -102,8 +102,8 @@ final class ProcessGroupTests: XCTestCase {
 
     // MARK: - Network tab
 
-    private func traffic(_ pid: pid_t, _ name: String, _ bytesIn: UInt64, _ bytesOut: UInt64) -> NetworkProcessUsage {
-        NetworkProcessUsage(pid: pid, name: name, bytesIn: bytesIn, bytesOut: bytesOut)
+    private func traffic(_ pid: pid_t, _ name: String, _ bytesIn: UInt64, _ bytesOut: UInt64) -> ProcessBytes {
+        ProcessBytes(pid: pid, name: name, bytesIn: bytesIn, bytesOut: bytesOut)
     }
 
     private lazy var groups = ProcessGroup.make(

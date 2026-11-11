@@ -17,6 +17,7 @@ Clicking on the menu bar icon, or pressing **⌃⌥⌘S** (Control-Option-Comman
 
 - **Live figures** — CPU %, memory used / total, current download and upload speed, and disk used / total.
 - **Top processes** — the five heaviest processes by CPU (as a share of the whole machine, measured since the previous refresh like Activity Monitor), memory, or network traffic over the last 5 minutes. Your own processes have a ✕ button to quit them.
+- **Disk activity** — the Disk tab lists the five apps that read (R) and wrote (W) the most over the last 5 minutes. macOS only reports disk activity per process to their owner, so this tab covers your own apps; system processes (Spotlight indexing, backups, kernel) are not counted.
 - Quick actions (Activity Monitor, Quit, Uninstall) and the app version. The app checks for updates automatically and shows an update button in the popover when a new version is available.
 
 The app starts automatically at login and runs silently in the background with no dock icon or window.
