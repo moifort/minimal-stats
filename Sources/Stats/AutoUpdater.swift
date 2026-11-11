@@ -58,35 +58,50 @@ final class AutoUpdater {
     }
 
     func checkForUpdates() {
+        checkForUpdates { _ in }
+    }
+
+    /// What a check found: a newer release, nothing newer, or a failure.
+    enum CheckResult {
+        case available(UpdateInfo)
+        case upToDate
+        case failed
+    }
+
+    /// Asks GitHub for the releases; `completion` runs on the main thread, after
+    /// `onUpdateAvailable` when there is a newer one.
+    func checkForUpdates(completion: @escaping (CheckResult) -> Void) {
         let url = URL(string: "https://api.github.com/repos/\(repo)/releases")!
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            let finish = { (result: CheckResult) in DispatchQueue.main.async { completion(result) } }
             guard let self else { return }
             guard let data, error == nil else {
                 Self.log.error("Update check failed: \(error?.localizedDescription ?? "no data")")
-                return
+                return finish(.failed)
             }
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             guard status == 200 else {
                 Self.log.error("Update check failed: HTTP status \(status)")
-                return
+                return finish(.failed)
             }
             guard let releases = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
                 Self.log.error("Update check failed: unexpected response payload")
-                return
+                return finish(.failed)
             }
 
             let newer = Self.newerReleases(Self.parseReleases(releases), than: Self.currentVersion)
 
-            guard let latest = newer.last else { return }
+            guard let latest = newer.last else { return finish(.upToDate) }
 
             let changelog = newer.map { "## v\($0.version)\n\n\($0.body)" }.joined(separator: "\n\n---\n\n")
             let info = UpdateInfo(latestRelease: latest, changelog: changelog)
 
             DispatchQueue.main.async {
                 self.onUpdateAvailable?(info)
+                completion(.available(info))
             }
         }.resume()
     }

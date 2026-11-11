@@ -157,6 +157,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openAtLogin.state = SMAppService.mainApp.status == .enabled ? .on : .off
             menu.addItem(openAtLogin)
         }
+        if autoUpdater != nil {
+            let check = NSMenuItem(title: String(localized: "Check for Updates\u{2026}"), action: #selector(checkForUpdatesFromMenu), keyEquivalent: "")
+            check.target = self
+            menu.addItem(check)
+        }
         if Distribution.hasUninstaller {
             let uninstall = NSMenuItem(title: String(localized: "Uninstall\u{2026}"), action: #selector(uninstallFromMenu), keyEquivalent: "")
             uninstall.target = self
@@ -174,6 +179,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func uninstallFromMenu() {
         performUninstall()
+    }
+
+    /// Checks now rather than at the next daily check, and says so when there
+    /// is nothing new.
+    @objc private func checkForUpdatesFromMenu() {
+        autoUpdater?.checkForUpdates { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .available(let info):
+                self.showUpdatePanel(info: info)
+            case .upToDate:
+                let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+                self.showAlert(
+                    String(localized: "Stats Is Up to Date"),
+                    String(localized: "Version \(version) is the latest version."),
+                    style: .informational
+                )
+            case .failed:
+                self.showAlert(
+                    String(localized: "Could Not Check for Updates"),
+                    String(localized: "GitHub could not be reached. Try again later."),
+                    style: .warning
+                )
+            }
+        }
+    }
+
+    private func showAlert(_ title: String, _ message: String, style: NSAlert.Style) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = style
+        alert.addButton(withTitle: "OK")
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
     }
 
     /// The App Store build opens at login only once the user asks (guideline 2.4.5).
