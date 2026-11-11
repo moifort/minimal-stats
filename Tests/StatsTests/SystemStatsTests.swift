@@ -29,4 +29,12 @@ final class SystemStatsTests: XCTestCase {
         let current = ["en0": Bytes(inBytes: 10, outBytes: 6_000)]
         XCTAssertEqual(SystemStats.networkDelta(current: current, previous: previous), Bytes(inBytes: 0, outBytes: 1_000))
     }
+
+    func testDiskIsReadAtFirstThenEveryInterval() {
+        let start = Date()
+        XCTAssertTrue(SystemStats.isDue(lastRead: nil, now: start, interval: 30))
+        XCTAssertFalse(SystemStats.isDue(lastRead: start, now: start.addingTimeInterval(2), interval: 30))
+        XCTAssertTrue(SystemStats.isDue(lastRead: start, now: start.addingTimeInterval(30), interval: 30))
+        XCTAssertTrue(SystemStats.isDue(lastRead: start, now: start.addingTimeInterval(-60), interval: 30))
+    }
 }

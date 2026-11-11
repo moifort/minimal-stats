@@ -31,6 +31,10 @@ final class SystemStats {
     /// Disk space in bytes. "Free" includes purgeable space, matching Finder.
     private(set) var diskFree: Int64 = 0
     private(set) var diskTotal: Int64 = 0
+    /// Reading the volume capacity costs ~8 ms on the main thread, and free
+    /// space hardly moves within half a minute.
+    static let diskRefreshInterval: TimeInterval = 30
+    private var lastDiskRead: Date?
 
     /// Memory in bytes. "Used" matches Activity Monitor: app memory + wired + compressed.
     private(set) var memoryUsed: UInt64 = 0
@@ -49,7 +53,11 @@ final class SystemStats {
     // MARK: – Public
 
     func refresh() {
-        readDisk()
+        let now = Date()
+        if Self.isDue(lastRead: lastDiskRead, now: now, interval: Self.diskRefreshInterval) {
+            readDisk()
+            lastDiskRead = now
+        }
         readMemory()
         readNetwork()
         // The first reading only seeds the deltas and yields no sample
@@ -59,6 +67,13 @@ final class SystemStats {
                 cpuHistory.removeFirst(cpuHistory.count - maxHistoryCount)
             }
         }
+    }
+
+    static func isDue(lastRead: Date?, now: Date, interval: TimeInterval) -> Bool {
+        guard let lastRead else { return true }
+        // A clock set backwards must not postpone the next reading indefinitely
+        let elapsed = now.timeIntervalSince(lastRead)
+        return elapsed >= interval || elapsed < 0
     }
 
     // MARK: – Network
