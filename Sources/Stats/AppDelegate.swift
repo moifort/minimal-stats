@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updatePanel: NSPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var popoverHotKey: GlobalHotKey?
 
     // MARK: – Lifecycle
 
@@ -48,6 +49,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         registerLoginItemOnFirstLaunch()
+
+        // Unavailable when another app already owns the shortcut; clicks still work
+        popoverHotKey = GlobalHotKey(GlobalHotKey.togglePopover) { [weak self] in
+            self?.togglePopover()
+        }
 
         // .common mode keeps the charts ticking during event tracking
         let statsTimer = Timer(

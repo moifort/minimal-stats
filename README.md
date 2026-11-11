@@ -13,7 +13,7 @@ Stats lives in your menu bar and displays four widgets side by side:
 - **Memory** — A vertical gauge filled to the share of RAM in use.
 - **Disk space** — A pie chart showing how much storage is used vs available on your main drive (purgeable space counts as available, like in Finder).
 
-Clicking on the menu bar icon opens a popover, updated live while it is open:
+Clicking on the menu bar icon, or pressing **⌃⌥⌘S** (Control-Option-Command-S) from any app, opens a popover, updated live while it is open:
 
 - **Live figures** — CPU %, memory used / total, current download and upload speed, and disk used / total.
 - **Top processes** — the five heaviest processes by CPU (as a share of the whole machine, measured since the previous refresh like Activity Monitor), memory, or network traffic over the last 5 minutes. Your own processes have a ✕ button to quit them.
