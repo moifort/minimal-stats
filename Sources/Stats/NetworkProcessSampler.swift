@@ -21,8 +21,11 @@ final class NetworkProcessSampler {
     static let window: TimeInterval = 300
     static let sampleInterval: TimeInterval = 10
 
-    private struct Counters {
+    struct Counters: Equatable {
+        /// Display name: the full executable name when it can be read
         let name: String
+        /// nettop's own (truncated) name, which never varies for a given process
+        let command: String
         let bytesIn: UInt64
         let bytesOut: UInt64
     }
@@ -83,29 +86,34 @@ final class NetworkProcessSampler {
         // that were already running say nothing about the recent window.
         guard let previous = lastCounters else { return }
 
+        let deltas = Self.deltas(current: counters, previous: previous)
+        samples.append(Sample(date: date, deltas: deltas))
+        samples.removeAll { date.timeIntervalSince($0.date) > Self.window }
+    }
+
+    /// Traffic per pid since the previous reading. nettop's counters are the sum
+    /// of the process's open flows, so they go down whenever a connection closes:
+    /// each direction only counts what it gained, never a negative. A pid that is
+    /// new, or now runs another executable (pid reuse), did all its traffic since.
+    nonisolated static func deltas(current: [pid_t: Counters], previous: [pid_t: Counters]) -> [pid_t: Counters] {
         var deltas: [pid_t: Counters] = [:]
-        for (pid, current) in counters {
-            // A new pid has done all its traffic since the last sample. A counter
-            // that went backwards means the pid was reused by another process.
-            let base = previous[pid].flatMap { prev in
-                current.bytesIn >= prev.bytesIn && current.bytesOut >= prev.bytesOut ? prev : nil
-            }
+        for (pid, now) in current {
+            let base = previous[pid].flatMap { $0.command == now.command ? $0 : nil }
             let delta = Counters(
-                name: current.name,
-                bytesIn: current.bytesIn - (base?.bytesIn ?? 0),
-                bytesOut: current.bytesOut - (base?.bytesOut ?? 0)
+                name: now.name,
+                command: now.command,
+                bytesIn: now.bytesIn - min(base?.bytesIn ?? 0, now.bytesIn),
+                bytesOut: now.bytesOut - min(base?.bytesOut ?? 0, now.bytesOut)
             )
             if delta.bytesIn > 0 || delta.bytesOut > 0 {
                 deltas[pid] = delta
             }
         }
-
-        samples.append(Sample(date: date, deltas: deltas))
-        samples.removeAll { date.timeIntervalSince($0.date) > Self.window }
+        return deltas
     }
 
     /// Parses lines like `Claude Helper.97795,1899084,6241861,`
-    private nonisolated static func parse(_ output: String) -> [pid_t: Counters] {
+    nonisolated static func parse(_ output: String) -> [pid_t: Counters] {
         var result: [pid_t: Counters] = [:]
         for line in output.split(separator: "\n").dropFirst() {
             let fields = line.split(separator: ",", omittingEmptySubsequences: false)
@@ -115,8 +123,9 @@ final class NetworkProcessSampler {
                   let bytesIn = UInt64(fields[1]),
                   let bytesOut = UInt64(fields[2])
             else { continue }
-            let name = executableName(pid: pid) ?? String(fields[0][..<dot])
-            result[pid] = Counters(name: name, bytesIn: bytesIn, bytesOut: bytesOut)
+            let command = String(fields[0][..<dot])
+            let name = executableName(pid: pid) ?? command
+            result[pid] = Counters(name: name, command: command, bytesIn: bytesIn, bytesOut: bytesOut)
         }
         return result
     }
