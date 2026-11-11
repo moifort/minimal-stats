@@ -138,7 +138,9 @@ private struct TopProcessesSection: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .padding(.horizontal, 4)
+            // As wide as the dividers: the four French tabs need 263 points, and
+            // with the 4-point inset of the rows they had 258, so a refresh
+            // could push the whole popover sideways.
             .padding(.bottom, 4)
 
             // Always render the same number of rows so the panel never resizes
