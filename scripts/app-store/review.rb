@@ -8,7 +8,7 @@ require_relative "asc"
 NOTES = <<~TEXT.strip
   Stats is a menu bar system monitor. It has no window and no Dock icon: it lives in the menu bar as four small charts, from left to right CPU, network (download below, upload above), memory and disk.
 
-  To test: launch Stats, look at the four charts at the right of the menu bar, then click them to open the popover with the live figures and the apps that used the network over the last five minutes. Right-click (or Control-click) the charts for "Open at Login" and "Quit Stats". Stats only opens at login once the user turns it on there.
+  To test: launch Stats, look at the four charts at the right of the menu bar, then click them to open the popover with the live figures and the apps that used the network over the last five minutes. Right-click (or Control-click) the charts for "Open at Login" and "Quit Stats". Stats only opens at login once the user turns it on there. The interface is in English and French.
 
   Sandbox and network: Stats sends and receives nothing itself. The per-app network list comes from /usr/bin/nettop, which the app runs every 10 seconds; nettop inherits the sandbox and reads the system's network statistics through a socket, which the sandbox only allows with com.apple.security.network.client. That is the only reason for this entitlement.
 

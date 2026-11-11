@@ -118,34 +118,29 @@ gh variable set APP_STORE_UPLOAD --body true
 - `screenshots.rb`: uploads `docs/app-store-screenshots/<locale>/*.jpg`;
 - `submit.rb <version> <build>`: attaches the build and submits it.
 
-The public name is a parameter, `APP_STORE_NAME`, not chosen yet: "Stats"
-alone is almost certainly taken on the store (and is also the name of a
-well-known open-source monitor). `listing.yml` puts it in place of `%{name}`;
-30 characters at most. The app keeps "Stats" in the menu bar and in
-Applications.
+The app record is "Minimal Stats" (`com.polyforms.stats`, SKU
+`polyforms-stats-macos`, Apple ID 6833477318, primary language English),
+created on 2026-11-11: "Minimal Stats" was free, and is `listing.rb`'s
+default name (`APP_STORE_NAME` overrides it, 30 characters at most). The app
+keeps "Stats" in the menu bar and in Applications. Its Mac App Store profile,
+"Stats Mac App Store", expires on 2027-07-15.
 
-```bash
-APP_STORE_NAME="…" ruby scripts/app-store/listing.rb
-```
+Done on 2026-11-11: identifier registered, record created, `profile.rb`,
+`listing.rb` (en-US, fr-FR, Utilities and Developer Tools, no age rating,
+free, 175 territories), `review.rb`. A package built locally with the
+profile passed `altool --validate-app` with no error; nothing was uploaded.
 
 ### Left to do, in order
 
-1. **Pick the App Store name** (and whether the identifier stays
-   `com.polyforms.stats`).
-2. **Register the identifier and the profile**: `ruby scripts/app-store/profile.rb`.
-3. **Create the app record** in App Store Connect (Apps, +, New App: macOS,
-   the name, primary language English, bundle ID `com.polyforms.stats`, SKU
-   `polyforms-stats-macos`): the API cannot create apps.
-4. **Fill the listing and the review notes**:
-   `APP_STORE_NAME=… ruby scripts/app-store/listing.rb`, then `review.rb`.
-5. **App Privacy**: Data Not Collected (nothing at all: no analytics, no
-   crash reporting, no network requests in this build).
-6. **Screenshots**: 2880×1800 (or 2560×1600, 1440×900) of the menu bar and
+1. **App Privacy** (no API): Data Not Collected. Nothing at all: no
+   analytics, no crash reporting, no network requests in this build.
+2. **Screenshots**: 2880×1800 (or 2560×1600, 1440×900) of the menu bar and
    the popover, in `docs/app-store-screenshots/en-US/` and `fr-FR/`, then
    `ruby scripts/app-store/screenshots.rb`.
-7. **Secrets and variable** above, then **push a tag**: the release uploads
+3. **Secrets and variable** above, then **push a tag**: the release uploads
    the build, then `ruby scripts/app-store/submit.rb <version> <build>`
    submits it for review.
 
-Once the app is live, set `APP_STORE_URL` in `site/main.js`: the site shows
-the App Store badge only then. Add it to the README too.
+Once the app is live, set `APP_STORE_URL` in `site/main.js` to
+`https://apps.apple.com/app/id6833477318?mt=12`: the site shows the App
+Store badge only then. Add it to the README too.
