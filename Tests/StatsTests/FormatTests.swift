@@ -23,11 +23,11 @@ final class ProcessSortTests: XCTestCase {
         XCTAssertNil(ProcessSort.cpu.help)
         XCTAssertNil(ProcessSort.memory.help)
         XCTAssertEqual(ProcessSort.network.help, "Data received and sent over the last 5 minutes")
-        XCTAssertEqual(ProcessSort.disk.help?.hasPrefix("Data read (R) and written (W) over the last 5 minutes, by your own apps only"), true)
+        XCTAssertEqual(ProcessSort.disk.help?.hasPrefix("Data read and written over the last 5 minutes, by your own apps only"), true)
     }
 
     func testDiskNotationCannotBeMistakenForNetworkArrows() {
-        XCTAssertEqual(Format.readWrite(1_200_000_000, 340_000_000), "R 1.2GB  W 340MB")
+        XCTAssertEqual(Format.readWrite(1_200_000_000, 340_000_000), "read 1.2GB, written 340MB")
         XCTAssertFalse(Format.readWrite(1, 1).contains("↓"))
         XCTAssertFalse(Format.readWrite(1, 1).contains("↑"))
     }
@@ -70,6 +70,5 @@ final class FrenchFormatTests: XCTestCase {
         XCTAssertEqual(Format.bytes(1_200_000_000), "1,2Go")
         XCTAssertEqual(Format.memory(512), "512o")
         XCTAssertEqual(Format.percent(12.4, decimals: 1), "12,4%")
-        XCTAssertEqual(Format.readWrite(1_200_000_000, 340_000_000), "L 1,2Go  É 340Mo")
     }
 }

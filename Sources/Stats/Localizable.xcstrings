@@ -86,12 +86,12 @@
         }
       }
     },
-    "Data read (R) and written (W) over the last %@, by your own apps only: macOS does not report it for system processes": {
+    "Data read and written over the last %@, by your own apps only: macOS does not report it for system processes": {
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Données lues (L) et écrites (É) sur %@, par vos propres apps seulement : macOS ne les donne pas pour les processus système"
+            "value": "Données lues et écrites sur %@, par vos propres apps seulement : macOS ne les donne pas pour les processus système"
           }
         }
       }
@@ -487,6 +487,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "la dernière minute"
+          }
+        }
+      }
+    },
+    "read %@, written %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lu %@, écrit %@"
           }
         }
       }

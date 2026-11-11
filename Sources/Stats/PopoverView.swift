@@ -120,6 +120,8 @@ private struct TopProcessesSection: View {
         let name: String
         let value: String
         let canQuit: Bool
+        /// The Disk tab's bytes, drawn with icons rather than letters
+        var readWritten: (read: Double, written: Double)? = nil
     }
 
     private static let rowCount = 5
@@ -160,7 +162,11 @@ private struct TopProcessesSection: View {
         case .disk:
             return GroupTraffic.make(from: model.diskProcesses, groups: model.processGroups)
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.rootPID, name: Format.processName($0.name), value: Format.readWrite(Double($0.bytesIn), Double($0.bytesOut)), canQuit: $0.canQuit) }
+                .map {
+                    Row(pid: $0.rootPID, name: Format.processName($0.name),
+                        value: Format.readWrite(Double($0.bytesIn), Double($0.bytesOut)), canQuit: $0.canQuit,
+                        readWritten: (Double($0.bytesIn), Double($0.bytesOut)))
+                }
         }
     }
 
@@ -170,7 +176,7 @@ private struct TopProcessesSection: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 8)
-            Text(row?.value ?? "")
+            valueText(row)
                 .lineLimit(1)
                 .fixedSize()
                 .monospacedDigit()
@@ -180,6 +186,15 @@ private struct TopProcessesSection: View {
         .font(.system(size: 12))
         .padding(.vertical, 3)
         .padding(.horizontal, 4)
+    }
+
+    /// Read with eyeglasses, written with a pencil: the network's arrows
+    /// already mean received and sent. VoiceOver reads the words.
+    private func valueText(_ row: Row?) -> Text {
+        guard let row else { return Text("") }
+        guard let bytes = row.readWritten else { return Text(row.value) }
+        return Text("\(Image(systemName: "eyeglasses")) \(Format.bytes(bytes.read))  \(Image(systemName: "pencil")) \(Format.bytes(bytes.written))")
+            .accessibilityLabel(row.value)
     }
 
     /// Only the user's own processes can be quit; other rows keep the space so values stay aligned.
@@ -295,9 +310,10 @@ enum Format {
         "↓ \(bytes(bytesIn))\(suffix)  ↑ \(bytes(bytesOut))\(suffix)"
     }
 
-    /// R for read and W for written: arrows already mean received and sent
+    /// The Disk tab's figures in words, for VoiceOver: the popover draws them
+    /// with eyeglasses and a pencil.
     static func readWrite(_ bytesRead: Double, _ bytesWritten: Double) -> String {
-        french ? "L \(bytes(bytesRead))  É \(bytes(bytesWritten))" : "R \(bytes(bytesRead))  W \(bytes(bytesWritten))"
+        String(localized: "read \(bytes(bytesRead)), written \(bytes(bytesWritten))")
     }
 
     private static func scaled(_ value: Double, base: Double, decimals: Int?) -> String {
