@@ -11,7 +11,9 @@ identifier `com.polyforms.stats`.
 `Sources/Stats/StatsAppStore.entitlements`: the App Sandbox, and
 `network.client` for `nettop` (below). `Distribution` in
 [Sources/Stats/Distribution.swift](../Sources/Stats/Distribution.swift) then
-hides what the sandbox refuses.
+hides what the sandbox refuses. The global shortcut (⌃⌥⌘S, Carbon
+`RegisterEventHotKey`) needs no permission and stays, as in Dictate's
+App Store build.
 
 Measured on 2026-11-11, macOS 27.2, in a sandboxed build (an ad-hoc signed
 probe with the same entitlements running every call Stats makes, then the
@@ -24,6 +26,7 @@ App Store build itself, watched for `nettop` children and sandbox denials):
 | Disk: volume capacity of `/` | works | widget and figure |
 | Process list: `/bin/ps` (setuid root) | **refused** (`Operation not permitted` at launch; `top`, also setuid, too) | replaced by `sysctl(KERN_PROC_ALL)`: names, parents, owners, no figures |
 | Per-process CPU and memory: libproc | **refused** (`proc_listallpids` returns 0) | CPU and Memory tabs hidden |
+| Per-process disk reads and writes: `proc_pid_rusage` | **refused** for every process but Stats itself (1 of 549 of the user's, `EPERM`) | Disk tab hidden, not sampled |
 | Per-process network: `/usr/bin/nettop` (not setuid) | works with `network.client`, **exits 70 without** | Network tab kept, grouped by app |
 | Quit another process: `kill`, `NSRunningApplication.terminate` | **refused** (`EPERM`, `false`) | no quit buttons |
 | Updater: write next to the app bundle | **refused** | off: the App Store installs updates |

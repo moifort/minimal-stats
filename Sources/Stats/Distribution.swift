@@ -8,7 +8,8 @@ import Darwin
 /// - `/bin/ps` and `/usr/bin/top` are setuid root: the sandbox refuses to
 ///   launch them, and libproc (`proc_pidinfo`, `proc_pidpath`) answers for no
 ///   process. Nothing reads another process's CPU time or memory, so the CPU
-///   and Memory tabs go. `sysctl(KERN_PROC_ALL)` still lists every process with
+///   and Memory tabs go, and so does the Disk tab: `proc_pid_rusage` only
+///   answers for Stats itself. `sysctl(KERN_PROC_ALL)` still lists every process with
 ///   its parent, enough to group the Network tab by application;
 /// - `/usr/bin/nettop` is not setuid and still runs: the Network tab stays;
 /// - `kill` and `NSRunningApplication.terminate` are refused for other
@@ -28,7 +29,7 @@ enum Distribution {
     static let isAppStore = false
     #endif
 
-    /// `/bin/ps` measures every process's CPU and memory.
+    /// `/bin/ps` measures every process's CPU and memory, libproc their disk activity.
     static var measuresProcesses: Bool { !isAppStore }
     static var canQuitProcesses: Bool { !isAppStore }
     static var hasUninstaller: Bool { !isAppStore }
