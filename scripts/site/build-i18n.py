@@ -48,8 +48,6 @@ problems = []
 for lang, text in sorted(T.items()):
     out = {}
     links = {
-        "{K}": "<kbd>⌃⌥⌘S</kbd>",
-        "{E}": "<kbd>esc</kbd>",
         "{DMG}": "<code>Stats.dmg</code>",
         "{PRIVACY}": f'<a href="privacy.html">{text["footer.privacy"]}</a>',
         "{POLYFORMS}": '<a href="https://github.com/moifort" rel="noopener">Polyforms</a>',

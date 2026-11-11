@@ -202,6 +202,7 @@ section {
 
 .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .apple-mark { display: block; flex: 0 0 auto; margin-right: 9px; margin-top: -2px; }
+.github-mark { display: block; flex: 0 0 auto; width: 18px; height: 18px; margin-right: 9px; }
 
 .button {
   display: inline-flex;
@@ -364,28 +365,28 @@ section {
 .card.wide h3 { grid-column: 1; grid-row: 2; }
 .card.wide p { grid-column: 1; grid-row: 3; }
 .card.wide .card-visual { grid-column: 2; grid-row: 1 / -1; padding-top: 0; }
+/* A tile across the whole row at every width. */
+.card.full { grid-column: 1 / -1; }
 @media (max-width: 900px) {
   .card.wide { display: flex; }
   .card.wide .card-visual { padding-top: 16px; }
+  /* Two columns: three singles leave the last one a whole row, as in Dictate. */
+  .card.fill { grid-column: span 2; }
 }
 @media (max-width: 560px) {
   .card { padding: 24px 22px 22px; min-height: 0; }
-  .card.wide { grid-column: span 1; }
+  .card.wide, .card.fill { grid-column: span 1; }
+  .card.full { grid-column: 1 / -1; }
 }
 
 .big-widget { display: block; max-width: 100%; height: 140px; width: auto; }
 
-.shortcut { display: flex; gap: 10px; font-size: 30px; }
-.shortcut kbd { min-width: 1.9em; justify-content: center; }
 
 .group-demo { width: 100%; max-width: 360px; font-size: 14px; }
 .group-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0 7px 22px; color: var(--text-muted); border-left: 1.5px solid var(--line); margin-left: 8px; }
 .group-row em { font-style: normal; font-variant-numeric: tabular-nums; }
 .group-row.lead { padding-left: 0; margin-left: 0; border: 0; color: var(--text); font-weight: 600; font-size: 16px; }
 
-.quiet-demo .dock { display: flex; gap: 10px; padding: 10px 12px; border-radius: 18px; background: var(--fill-strong); }
-.quiet-demo .dock i { width: 42px; height: 42px; border-radius: 10px; background: var(--fill-strong); }
-.quiet-demo .dock i.gap { background: transparent; border: 1.5px dashed var(--text-dim); }
 
 /* ---------- Install ---------- */
 
