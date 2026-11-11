@@ -110,7 +110,7 @@ final class AutoUpdaterTests: XCTestCase {
     // MARK: - Downloaded bundle
 
     func testValidatesDownloadedBundle() {
-        let id = "com.stats.menubar"
+        let id = "com.polyforms.stats"
         XCTAssertNoThrow(try AutoUpdater.validate(
             newBundleInfo: ["CFBundleIdentifier": id, "CFBundleShortVersionString": "1.12.0"],
             bundleIdentifier: id, currentVersion: "1.11.0"))
@@ -124,5 +124,36 @@ final class AutoUpdaterTests: XCTestCase {
             bundleIdentifier: id, currentVersion: "1.11.0")) {
             XCTAssertEqual($0 as? AutoUpdater.UpdateError, .notNewer)
         }
+    }
+
+    func testCopyUnderTheLegacyIdentifierAcceptsTheNewOne() {
+        XCTAssertNoThrow(try AutoUpdater.validate(
+            newBundleInfo: ["CFBundleIdentifier": "com.polyforms.stats", "CFBundleShortVersionString": "1.12.0"],
+            bundleIdentifier: "com.stats.menubar", currentVersion: "1.11.0"))
+        XCTAssertNoThrow(try AutoUpdater.validate(
+            newBundleInfo: ["CFBundleIdentifier": "com.stats.menubar", "CFBundleShortVersionString": "1.12.0"],
+            bundleIdentifier: "com.stats.menubar", currentVersion: "1.11.0"))
+    }
+
+    func testNeverMovesBackToTheLegacyIdentifierNorToAnotherApp() {
+        for (running, downloaded) in [
+            ("com.polyforms.stats", "com.stats.menubar"),
+            ("com.other", "com.polyforms.stats"),
+            ("", "com.polyforms.stats"),
+        ] {
+            XCTAssertThrowsError(try AutoUpdater.validate(
+                newBundleInfo: ["CFBundleIdentifier": downloaded, "CFBundleShortVersionString": "9.0.0"],
+                bundleIdentifier: running, currentVersion: "1.11.0"), "\(running) → \(downloaded)") {
+                XCTAssertEqual($0 as? AutoUpdater.UpdateError, .wrongBundleIdentifier)
+            }
+        }
+    }
+
+    func testInfoPlistCarriesTheReleaseIdentifier() throws {
+        let plist = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/Stats/Info.plist")
+        let info = try XCTUnwrap(NSDictionary(contentsOf: plist) as? [String: Any])
+        XCTAssertEqual(info["CFBundleIdentifier"] as? String, AppIdentity.bundleIdentifier)
     }
 }

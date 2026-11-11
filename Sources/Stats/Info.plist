@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.stats.menubar</string>
+	<string>com.polyforms.stats</string>
 	<key>CFBundleName</key>
 	<string>Stats</string>
 	<key>CFBundlePackageType</key>
@@ -18,9 +18,13 @@
 	<string>1.11.0</string>
 	<key>CFBundleVersion</key>
 	<string>1.11.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Polyforms</string>
 </dict>
 </plist>
