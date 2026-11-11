@@ -62,9 +62,14 @@ final class NetworkProcessSampler {
 
     /// Processes with traffic in the window, largest total first
     func topProcesses() -> [NetworkProcessUsage] {
+        Self.ranked(samples.map(\.deltas))
+    }
+
+    /// Sums per-pid traffic over the samples; largest total first, then by name and pid.
+    nonisolated static func ranked(_ samples: [[pid_t: Counters]]) -> [NetworkProcessUsage] {
         var totals: [pid_t: NetworkProcessUsage] = [:]
-        for sample in samples {
-            for (pid, delta) in sample.deltas {
+        for deltas in samples {
+            for (pid, delta) in deltas {
                 let previous = totals[pid]
                 totals[pid] = NetworkProcessUsage(
                     pid: pid,
@@ -76,7 +81,11 @@ final class NetworkProcessSampler {
         }
         return totals.values
             .filter { $0.totalBytes > 0 }
-            .sorted { $0.totalBytes > $1.totalBytes }
+            .sorted {
+                $0.totalBytes != $1.totalBytes
+                    ? $0.totalBytes > $1.totalBytes
+                    : ProcessGroup.isOrdered($0.name, $0.pid, before: $1.name, $1.pid)
+            }
     }
 
     // MARK: - Private

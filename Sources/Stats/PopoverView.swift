@@ -153,14 +153,11 @@ private struct TopProcessesSection: View {
         switch model.processSort {
         case .cpu:
             // Processes seen only once have no CPU figure yet
-            return model.processGroups
-                .compactMap { group in group.cpuPercent.map { (group, $0) } }
-                .sorted { $0.1 > $1.1 }
+            return ProcessGroup.sortedByCPU(model.processGroups)
                 .prefix(Self.rowCount)
-                .map { Row(pid: $0.0.rootPID, name: $0.0.name, value: Format.percent($0.1, decimals: 1), canQuit: $0.0.canQuit) }
+                .map { Row(pid: $0.group.rootPID, name: $0.group.name, value: Format.percent($0.cpuPercent, decimals: 1), canQuit: $0.group.canQuit) }
         case .memory:
-            return model.processGroups
-                .sorted { $0.memoryBytes > $1.memoryBytes }
+            return ProcessGroup.sortedByMemory(model.processGroups)
                 .prefix(Self.rowCount)
                 .map { Row(pid: $0.rootPID, name: $0.name, value: Format.memory($0.memoryBytes), canQuit: $0.canQuit) }
         case .network:

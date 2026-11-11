@@ -49,4 +49,35 @@ final class ProcessGroupTests: XCTestCase {
         let groups = ProcessGroup.make(from: [process(9, parent: 4242, "orphan", cpu: 1)])
         XCTAssertEqual(groups.map(\.rootPID), [9])
     }
+
+    // MARK: - Stable order
+
+    private let idleGroups: [ProcessUsage] = [
+        ProcessUsage(pid: 30, parentPID: 1, name: "b", cpuPercent: 0, memoryBytes: 10, isOwnedByUser: true),
+        ProcessUsage(pid: 20, parentPID: 1, name: "a", cpuPercent: 0, memoryBytes: 10, isOwnedByUser: true),
+        ProcessUsage(pid: 10, parentPID: 1, name: "b", cpuPercent: 0, memoryBytes: 10, isOwnedByUser: true),
+        ProcessUsage(pid: 40, parentPID: 1, name: "busy", cpuPercent: 5, memoryBytes: 99, isOwnedByUser: true),
+    ]
+
+    func testGroupsComeOutInAStableOrder() {
+        let groups = ProcessGroup.make(from: idleGroups)
+        XCTAssertEqual(groups.map(\.rootPID), [20, 10, 30, 40])
+        XCTAssertEqual(ProcessGroup.make(from: idleGroups.reversed()).map(\.rootPID), [20, 10, 30, 40])
+    }
+
+    func testEqualValuesAreOrderedByNameThenPID() {
+        let groups = ProcessGroup.make(from: idleGroups.shuffled())
+        XCTAssertEqual(ProcessGroup.sortedByCPU(groups).map(\.group.rootPID), [40, 20, 10, 30])
+        XCTAssertEqual(ProcessGroup.sortedByMemory(groups).map(\.rootPID), [40, 20, 10, 30])
+    }
+
+    func testMembersWithEqualCPUAreOrderedByNameThenPID() {
+        let groups = ProcessGroup.make(from: [
+            process(100, parent: 1, "root", cpu: 0),
+            process(5, parent: 100, "z", cpu: 0),
+            process(4, parent: 100, "a", cpu: 0),
+            process(3, parent: 100, "a", cpu: 0),
+        ].shuffled())
+        XCTAssertEqual(groups[0].members.map(\.pid), [3, 4, 100, 5])
+    }
 }

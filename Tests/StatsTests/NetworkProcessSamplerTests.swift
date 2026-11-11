@@ -46,4 +46,14 @@ final class NetworkProcessSamplerTests: XCTestCase {
         XCTAssertEqual(parsed[99991]?.bytesIn, 21_206_427)
         XCTAssertEqual(parsed[99992]?.bytesOut, 111)
     }
+
+    func testRankingSumsSamplesAndBreaksTiesByNameThenPID() {
+        let samples: [[pid_t: NetworkProcessSampler.Counters]] = [
+            [3: counters("b", 10, 0), 2: counters("a", 10, 0), 1: counters("b", 10, 0)],
+            [4: counters("big", 100, 0), 2: counters("a", 0, 0)],
+        ]
+        let ranked = NetworkProcessSampler.ranked(samples)
+        XCTAssertEqual(ranked.map(\.pid), [4, 2, 1, 3])
+        XCTAssertEqual(ranked.first?.totalBytes, 100)
+    }
 }

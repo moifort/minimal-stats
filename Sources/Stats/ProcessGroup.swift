@@ -41,7 +41,7 @@ struct ProcessGroup: Identifiable {
             members[top.pid, default: []].append(process)
         }
 
-        return members.map { rootPID, members in
+        let groups = members.map { rootPID, members in
             let root = roots[rootPID]!
             let measured = members.compactMap(\.cpuPercent)
             let isSimulator = root.name == simulatorRootName
@@ -50,11 +50,41 @@ struct ProcessGroup: Identifiable {
                 name: names[rootPID] ?? (isSimulator ? "Simulator" : root.name),
                 cpuPercent: measured.isEmpty ? nil : min(measured.reduce(0, +), 100),
                 memoryBytes: members.reduce(0) { $0 + $1.memoryBytes },
-                members: members.sorted { ($0.cpuPercent ?? -1) > ($1.cpuPercent ?? -1) },
+                members: members.sorted {
+                    let a = $0.cpuPercent ?? -1, b = $1.cpuPercent ?? -1
+                    return a != b ? a > b : isOrdered($0.name, $0.pid, before: $1.name, $1.pid)
+                },
                 // SIGTERM on launchd_sim would leave the simulator in a broken state
                 canQuit: root.isOwnedByUser && !isSimulator
             )
         }
+        // Dictionary order changes from one sample to the next
+        return groups.sorted { isOrdered($0.name, $0.rootPID, before: $1.name, $1.rootPID) }
+    }
+
+    /// Busiest first; groups without a CPU figure yet are left out.
+    static func sortedByCPU(_ groups: [ProcessGroup]) -> [(group: ProcessGroup, cpuPercent: Double)] {
+        groups
+            .compactMap { group in group.cpuPercent.map { (group: group, cpuPercent: $0) } }
+            .sorted {
+                $0.cpuPercent != $1.cpuPercent
+                    ? $0.cpuPercent > $1.cpuPercent
+                    : isOrdered($0.group.name, $0.group.rootPID, before: $1.group.name, $1.group.rootPID)
+            }
+    }
+
+    /// Largest first.
+    static func sortedByMemory(_ groups: [ProcessGroup]) -> [ProcessGroup] {
+        groups.sorted {
+            $0.memoryBytes != $1.memoryBytes
+                ? $0.memoryBytes > $1.memoryBytes
+                : isOrdered($0.name, $0.rootPID, before: $1.name, $1.rootPID)
+        }
+    }
+
+    /// Tie-break for equal values, so rows keep their place between refreshes.
+    static func isOrdered(_ name: String, _ pid: pid_t, before otherName: String, _ otherPID: pid_t) -> Bool {
+        name != otherName ? name < otherName : pid < otherPID
     }
 
     static let simulatorRootName = "launchd_sim"
