@@ -252,6 +252,26 @@
         }
       }
     },
+    "The downloaded app is not properly signed.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app téléchargée n'est pas correctement signée."
+          }
+        }
+      }
+    },
+    "The downloaded app is not signed by the developer of Stats.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app téléchargée n'est pas signée par le développeur de Stats."
+          }
+        }
+      }
+    },
     "The downloaded archive could not be extracted.": {
       "localizations": {
         "fr": {

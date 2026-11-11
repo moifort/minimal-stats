@@ -157,3 +157,56 @@ final class AutoUpdaterTests: XCTestCase {
         XCTAssertEqual(info["CFBundleIdentifier"] as? String, AppIdentity.bundleIdentifier)
     }
 }
+
+final class UpdateSignatureTests: XCTestCase {
+
+    private let team = AutoUpdater.Signature(isValid: true, teamIdentifier: "46C337T7YN")
+
+    func testSignedCopyTakesAnUpdateFromItsOwnTeamOnly() {
+        XCTAssertNoThrow(try AutoUpdater.validateSignature(downloaded: team, running: team))
+        XCTAssertThrowsError(try AutoUpdater.validateSignature(
+            downloaded: .init(isValid: true, teamIdentifier: "OTHERTEAM1"), running: team)) {
+            XCTAssertEqual($0 as? AutoUpdater.UpdateError, .otherDeveloper)
+        }
+        XCTAssertThrowsError(try AutoUpdater.validateSignature(
+            downloaded: .init(isValid: true, teamIdentifier: nil), running: team)) {
+            XCTAssertEqual($0 as? AutoUpdater.UpdateError, .otherDeveloper)
+        }
+    }
+
+    func testAdHocCopyMovesToTheDeveloperIDBuild() {
+        let adHoc = AutoUpdater.Signature(isValid: true, teamIdentifier: nil)
+        XCTAssertNoThrow(try AutoUpdater.validateSignature(downloaded: team, running: adHoc))
+    }
+
+    func testBrokenSignatureIsAlwaysRefused() {
+        for running in [team, AutoUpdater.Signature(isValid: true, teamIdentifier: nil)] {
+            XCTAssertThrowsError(try AutoUpdater.validateSignature(
+                downloaded: .init(isValid: false, teamIdentifier: "46C337T7YN"), running: running)) {
+                XCTAssertEqual($0 as? AutoUpdater.UpdateError, .invalidSignature)
+            }
+        }
+    }
+
+    /// A bundle signed then modified fails the check, as a tampered download would.
+    func testReadsSignaturesFromDisk() throws {
+        let app = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString)/Probe.app")
+        let macOS = app.appendingPathComponent("Contents/MacOS")
+        try FileManager.default.createDirectory(at: macOS, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: app.deletingLastPathComponent()) }
+        try FileManager.default.copyItem(atPath: "/bin/echo", toPath: macOS.appendingPathComponent("Probe").path)
+        let plist: [String: Any] = ["CFBundleIdentifier": "com.polyforms.stats.probe", "CFBundleExecutable": "Probe", "CFBundlePackageType": "APPL"]
+        try (plist as NSDictionary).write(to: app.appendingPathComponent("Contents/Info.plist"))
+
+        XCTAssertFalse(AutoUpdater.signature(of: app).isValid, "not signed yet")
+        let sign = Process()
+        sign.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        sign.arguments = ["--force", "--sign", "-", app.path]
+        try sign.run()
+        sign.waitUntilExit()
+        XCTAssertEqual(AutoUpdater.signature(of: app), .init(isValid: true, teamIdentifier: nil))
+
+        try Data("tampered".utf8).write(to: app.appendingPathComponent("Contents/Resources.txt"))
+        XCTAssertFalse(AutoUpdater.signature(of: app).isValid, "a file added after signing")
+    }
+}
