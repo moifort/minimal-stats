@@ -47,48 +47,36 @@ context.imageInterpolation = .high
 // left: flip once here so the icon positions above can be reused as-is.
 func flipped(_ point: NSPoint) -> NSPoint { NSPoint(x: point.x, y: pointSize.height - point.y) }
 
-// The icon's own colours: a deep blue to violet glass cube.
-let canvas = NSColor(srgbRed: 0.86, green: 0.87, blue: 0.93, alpha: 1)
+// A plain background, as quiet as the app: no gradient.
+let canvas = NSColor(srgbRed: 0.965, green: 0.965, blue: 0.97, alpha: 1)
 let bounds = NSRect(origin: .zero, size: pointSize)
-NSGradient(colors: [canvas.blended(withFraction: 0.45, of: .white)!, canvas])!
-    .draw(in: bounds, angle: -90)
+canvas.setFill()
+bounds.fill()
 
-// A faint echo of the menu bar widgets along the bottom edge: the CPU line
-// chart in the icon's blue and violet, over a grid like the widget's.
-let violet = NSColor(srgbRed: 0.55, green: 0.42, blue: 0.94, alpha: 1)
-let blue = NSColor(srgbRed: 0.26, green: 0.50, blue: 0.96, alpha: 1)
-let cyan = NSColor(srgbRed: 0.30, green: 0.80, blue: 0.92, alpha: 1)
-
-func chart(baseline: CGFloat, height: CGFloat, seed: CGFloat) -> NSBezierPath {
-    let path = NSBezierPath()
-    path.lineWidth = 3
-    path.lineCapStyle = .butt
-    path.lineJoinStyle = .round
-    var x: CGFloat = -20
-    path.move(to: NSPoint(x: x, y: baseline))
-    while x <= pointSize.width + 20 {
-        // A few sines make a load curve: calm, a spike, calm again.
-        let t = x / pointSize.width
-        let envelope = sin(min(max(t, 0), 1) * .pi)
-        let load = 0.35 * sin(t * 19 + seed) + 0.25 * sin(t * 47 + seed * 2) + 0.4 * exp(-pow((t - 0.62) * 9, 2))
-        path.line(to: NSPoint(x: x, y: baseline + height * envelope * max(load, -0.2)))
-        x += 3
-    }
-    return path
+// One stats curve along the bottom edge, the icon's, in grey: a few points
+// of load, calm, a spike, calm again, smoothed.
+let load: [CGFloat] = [0.22, 0.30, 0.24, 0.38, 0.32, 0.52, 0.90, 0.62, 0.44, 0.50, 0.36, 0.42]
+let chart = NSRect(x: -10, y: 10, width: pointSize.width + 20, height: 50)
+let points = load.enumerated().map { i, v in
+    NSPoint(x: chart.minX + chart.width * CGFloat(i) / CGFloat(load.count - 1), y: chart.minY + chart.height * v)
 }
-
-for (color, height, seed, baseline) in [(violet, 44.0, 0.0, 40.0), (blue, 30.0, 1.7, 34.0), (cyan, 20.0, 3.1, 30.0)] as [(NSColor, CGFloat, CGFloat, CGFloat)] {
-    let glow = chart(baseline: baseline, height: height, seed: seed)
-    glow.lineWidth = 12
-    color.withAlphaComponent(0.10).setStroke()
-    glow.stroke()
-    let stroke = chart(baseline: baseline, height: height, seed: seed)
-    color.withAlphaComponent(0.50).setStroke()
-    stroke.stroke()
+let curve = NSBezierPath()
+curve.move(to: points[0])
+for i in 0..<(points.count - 1) {
+    let p0 = points[max(i - 1, 0)], p1 = points[i], p2 = points[i + 1], p3 = points[min(i + 2, points.count - 1)]
+    curve.curve(
+        to: p2,
+        controlPoint1: NSPoint(x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6),
+        controlPoint2: NSPoint(x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6))
 }
+curve.lineWidth = 2.5
+curve.lineCapStyle = .round
+curve.lineJoinStyle = .round
+NSColor(white: 0.0, alpha: 0.16).setStroke()
+curve.stroke()
 
 // The arrow, from the app to the Applications folder.
-let arrowColor = NSColor(srgbRed: 0.38, green: 0.38, blue: 0.48, alpha: 1)
+let arrowColor = NSColor(white: 0.40, alpha: 1)
 let arrowY = flipped(appIconCenter).y
 let arrowStart = NSPoint(x: appIconCenter.x + 88, y: arrowY)
 let arrowEnd = NSPoint(x: applicationsIconCenter.x - 88, y: arrowY)
@@ -122,10 +110,10 @@ func drawCentered(_ text: String, size: CGFloat, weight: NSFont.Weight, color: N
 // French, like Dictate's.
 drawCentered(
     "Drag Stats to Applications", size: 17, weight: .semibold,
-    color: NSColor(srgbRed: 0.18, green: 0.19, blue: 0.24, alpha: 1), y: 94)
+    color: NSColor(white: 0.15, alpha: 1), y: 94)
 drawCentered(
     "Glissez Stats dans Applications", size: 13, weight: .regular,
-    color: NSColor(srgbRed: 0.38, green: 0.39, blue: 0.46, alpha: 1), y: 74)
+    color: NSColor(white: 0.42, alpha: 1), y: 74)
 
 NSGraphicsContext.restoreGraphicsState()
 
