@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="meta.title">Stats — Le moniteur système de la barre des menus, gratuit et open source</title>
+  <meta name="description" content="Processeur, réseau, mémoire et disque : quatre petits graphiques en direct dans la barre des menus du Mac. Gratuit, open source, rien ne quitte votre Mac.">
+  <!-- Share previews: crawlers run no JavaScript, so the English copy is the
+       static one here and French is declared as the alternate. -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://moifort.github.io/minimal-stats/">
+  <meta property="og:site_name" content="Stats">
+  <meta property="og:title" content="Stats — A free, open-source menu bar monitor for Mac">
+  <meta property="og:description" content="CPU, network, memory and disk: four tiny live charts in your Mac's menu bar. Free, open source, nothing leaves your Mac.">
+  <meta property="og:image" content="https://moifort.github.io/minimal-stats/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Stats: CPU, network, memory and disk charts in the Mac menu bar">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="fr_FR">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Stats — A free, open-source menu bar monitor for Mac">
+  <meta name="twitter:description" content="CPU, network, memory and disk: four tiny live charts in your Mac's menu bar. Free, open source, nothing leaves your Mac.">
+  <meta name="twitter:image" content="https://moifort.github.io/minimal-stats/og.png">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon-256.png">
+  <script>
+    // The page is written in French. A browser set to another of the 25
+    // languages gets that one (i18n/<code>.js), any other gets English.
+    // ?lang=de forces one. The same 25 as Dictate's site.
+    (() => {
+      const supported = ["bg", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr", "hr", "hu", "it",
+        "lt", "lv", "mt", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "uk"];
+      const forced = new URLSearchParams(location.search).get("lang");
+      const wanted = forced ? [forced] : (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"]);
+      const lang = wanted.map((l) => l.toLowerCase().split("-")[0]).find((l) => supported.includes(l)) || "en";
+      document.documentElement.lang = lang;
+      if (lang !== "fr") document.documentElement.classList.add("i18n-pending");
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css?v=20261111-3">
+</head>
+<body>
+
+<header class="nav">
+  <a class="nav-brand" href="#top" aria-label="Stats">
+    <img class="nav-icon" src="icon-256.png" width="26" height="26" alt="">
+    <span>Stats</span>
+  </a>
+  <nav class="nav-links" aria-label="Sections" data-i18n-aria="aria.sections">
+    <a href="#features" data-i18n="nav.features">Widgets</a>
+    <a href="#install" data-i18n="nav.install">Installer</a>
+    <a href="#faq" data-i18n="nav.faq">Questions</a>
+    <a class="nav-gh" href="https://github.com/moifort/minimal-stats" rel="noopener"><svg class="nav-github" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
+    <a class="nav-cta" href="https://github.com/moifort/minimal-stats/releases/latest/download/Stats.dmg" data-download data-i18n="nav.download">Télécharger</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- Hero: the menu bar with the four widgets, and the popover under them. -->
+  <section class="hero">
+    <p class="eyebrow" data-i18n="hero.eyebrow">Moniteur système pour Mac</p>
+    <h1 class="hero-title" data-i18n="hero.title">Votre Mac,<br>d'un coup d'œil.</h1>
+    <p class="hero-subtitle" data-i18n="hero.subtitle">Processeur, réseau, mémoire et disque&nbsp;: quatre petits graphiques en direct dans la barre des menus. Un clic pour le détail.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="https://github.com/moifort/minimal-stats/releases/latest/download/Stats.dmg" data-download>
+        <svg class="apple-mark" viewBox="0 0 17 20" width="15" height="18" aria-hidden="true"><path fill="currentColor" d="M14.2 10.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.4 1.2 0 1.6-.8 3.1-.8 1.4 0 1.8.8 3.1.7 1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.7-1-2.7-3.7ZM11.9 3.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3Z"/></svg>
+        <span data-i18n="dl.mac">Télécharger pour Mac</span>
+      </a>
+      <!-- Shown by main.js once APP_STORE_URL is set: the app is not on the store yet. -->
+      <a class="store-badge" href="#" rel="noopener" aria-label="Télécharger dans le Mac App Store" data-i18n-aria="aria.store" data-app-store hidden>
+        <img src="badges/fr.svg" height="50" alt="" data-store-badge>
+      </a>
+      <a class="button ghost" href="#features" data-i18n="hero.seeWidgets">Voir les widgets</a>
+    </div>
+    <p class="hero-meta" data-i18n="hero.meta">Gratuit · Open source · <span data-version>Dernière version</span> · macOS 26 · Apple Silicon</p>
+
+    <div class="stage" aria-label="Les quatre widgets dans la barre des menus, et le popover ouvert en dessous" data-i18n-aria="aria.stage" role="img">
+      <div class="menubar">
+        <span class="menubar-apple" aria-hidden="true"><svg viewBox="0 0 17 20" width="13" height="15"><path fill="currentColor" d="M14.2 10.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.4 1.2 0 1.6-.8 3.1-.8 1.4 0 1.8.8 3.1.7 1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.7-1-2.7-3.7ZM11.9 3.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3Z"/></svg></span>
+        <span class="menubar-spacer"></span>
+        <span class="widgets" aria-hidden="true">
+          <canvas data-widget="cpu" width="72" height="44"></canvas>
+          <canvas data-widget="net" width="72" height="44"></canvas>
+          <canvas data-widget="mem" width="18" height="44"></canvas>
+          <canvas data-widget="disk" width="44" height="44"></canvas>
+        </span>
+        <span class="menubar-clock" aria-hidden="true">9:41</span>
+      </div>
+
+      <!-- The app's own popover, in its own English, laid out like it. -->
+      <div class="popover" aria-hidden="true">
+        <div class="pop-rows">
+          <div class="pop-row"><i class="sf cpu"></i><span>CPU</span><b data-live="cpu">23%</b></div>
+          <div class="pop-row"><i class="sf mem"></i><span>Memory</span><b data-live="mem">11.0GB / 16GB</b></div>
+          <div class="pop-row"><i class="sf net"></i><span>Network</span><b data-live="net">↓ 180KB/s&nbsp;&nbsp;↑ 32.0KB/s</b></div>
+          <div class="pop-row"><i class="sf disk"></i><span>Disk</span><b>280GB / 494GB</b></div>
+        </div>
+        <hr>
+        <div class="segmented"><span class="on">CPU</span><span>Memory</span><span>Network</span><span>Disk</span></div>
+        <div class="pop-list" data-live="apps">
+          <div class="pop-app"><span>Xcode</span><em>18.4%</em><i></i></div>
+          <div class="pop-app"><span>Claude</span><em>9.2%</em><i></i></div>
+          <div class="pop-app"><span>Safari</span><em>3.1%</em><i></i></div>
+          <div class="pop-app"><span>WindowServer</span><em>2.6%</em><i class="none"></i></div>
+          <div class="pop-app"><span>Music</span><em>0.8%</em><i></i></div>
+        </div>
+        <hr>
+        <div class="pop-action"><i class="sf gauge"></i>Activity Monitor</div>
+        <div class="pop-action"><i class="sf quit"></i>Quit Stats</div>
+        <div class="pop-version" data-version-short></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <h2 class="section-title" data-i18n="feat.title">Quatre widgets, côte à côte.</h2>
+    <p class="section-lead" data-i18n="feat.lead">Toujours visibles, jamais encombrants&nbsp;: en noir et blanc comme la barre des menus, en clair comme en sombre.</p>
+
+    <div class="bento">
+      <article class="card wide">
+        <div class="card-visual"><canvas class="big-widget" data-widget="cpu" width="360" height="160" aria-hidden="true"></canvas></div>
+        <h3 data-i18n="cpu.title">Processeur</h3>
+        <p data-i18n="cpu.text">Les cinq dernières minutes en continu, sur une échelle fixe de 0 à 100&nbsp;%&nbsp;: un pic se voit tout de suite, et ne se confond jamais avec un Mac au repos.</p>
+      </article>
+
+      <article class="card">
+        <div class="card-visual"><canvas class="big-widget" data-widget="net" width="240" height="160" aria-hidden="true"></canvas></div>
+        <h3 data-i18n="net.title">Réseau</h3>
+        <p data-i18n="net.text">L'envoi en haut, la réception en bas. La boucle locale, les VPN et les machines virtuelles sont écartés&nbsp;: rien n'est compté deux fois.</p>
+      </article>
+
+      <article class="card">
+        <div class="card-visual"><canvas class="big-widget" data-widget="mem" width="60" height="160" aria-hidden="true"></canvas></div>
+        <h3 data-i18n="mem.title">Mémoire</h3>
+        <p data-i18n="mem.text">Une jauge remplie à la part de mémoire utilisée, comptée comme dans le Moniteur d'activité.</p>
+      </article>
+
+      <article class="card">
+        <div class="card-visual"><canvas class="big-widget" data-widget="disk" width="160" height="160" aria-hidden="true"></canvas></div>
+        <h3 data-i18n="disk.title">Disque</h3>
+        <p data-i18n="disk.text">La place occupée sur le disque de démarrage. L'espace purgeable compte comme libre, comme dans le Finder.</p>
+      </article>
+
+      <article class="card">
+        <div class="card-visual">
+          <div class="shortcut" aria-hidden="true"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>S</kbd></div>
+        </div>
+        <h3 data-i18n="key.title">Au clavier</h3>
+        <p data-i18n="key.text"><kbd>⌃⌥⌘S</kbd> ouvre le détail depuis n'importe quelle app, <kbd>esc</kbd> le referme.</p>
+      </article>
+
+      <article class="card wide">
+        <div class="card-visual">
+          <div class="group-demo" aria-hidden="true">
+            <div class="group-row lead"><span>Claude</span><em>14.8%</em></div>
+            <div class="group-row"><span>Claude Helper (Renderer)</span><em>8.1%</em></div>
+            <div class="group-row"><span>claude</span><em>4.4%</em></div>
+            <div class="group-row"><span>node</span><em>1.9%</em></div>
+            <div class="group-row"><span>git</span><em>0.4%</em></div>
+          </div>
+        </div>
+        <h3 data-i18n="apps.title">Les apps, pas les processus</h3>
+        <p data-i18n="apps.text">Le détail classe les cinq apps qui pèsent le plus, en processeur, mémoire, réseau ou disque. Chacune compte tout ce qu'elle a lancé&nbsp;: ses assistants, ses outils, ses terminaux. Vos propres apps se quittent d'un clic.</p>
+      </article>
+
+      <article class="card">
+        <div class="card-visual">
+          <div class="quiet-demo" aria-hidden="true">
+            <span class="dock"><i></i><i></i><i></i><i class="gap"></i></span>
+          </div>
+        </div>
+        <h3 data-i18n="quiet.title">Discret</h3>
+        <p data-i18n="quiet.text">Pas de fenêtre, pas d'icône dans le Dock. Stats s'ouvre à la connexion, se met à jour tout seul et se fait oublier.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Install: the three ways, then the download. -->
+  <section class="download" id="install">
+    <img class="download-icon" src="icon-256.png" width="120" height="120" alt="">
+    <h2 class="section-title" data-i18n="inst.title">Gratuit &amp; Open source</h2>
+    <p class="section-lead" data-i18n="inst.lead">Signé et notarisé par Apple, sous licence MIT. Trois façons de l'installer.</p>
+
+    <div class="bento installs">
+      <article class="card">
+        <h3 data-i18n="inst.dmg.title">Image disque</h3>
+        <p data-i18n="inst.dmg.text">Ouvrez <code>Stats.dmg</code> et glissez Stats dans Applications. Il se met ensuite à jour tout seul.</p>
+      </article>
+      <article class="card">
+        <h3>Homebrew</h3>
+        <p data-i18n="inst.brew.text">Une commande dans le Terminal&nbsp;:</p>
+        <p><code class="copy">brew install --cask moifort/tap/minimal-stats</code></p>
+      </article>
+      <article class="card">
+        <h3 data-i18n="inst.src.title">Depuis les sources</h3>
+        <p data-i18n="inst.src.text">Avec les outils en ligne de commande de Xcode&nbsp;:</p>
+        <p><code class="copy">git clone https://github.com/moifort/minimal-stats<br>cd minimal-stats &amp;&amp; make install</code></p>
+      </article>
+    </div>
+
+    <div class="hero-actions">
+      <a class="button primary" href="https://github.com/moifort/minimal-stats/releases/latest/download/Stats.dmg" data-download>
+        <svg class="apple-mark" viewBox="0 0 17 20" width="15" height="18" aria-hidden="true"><path fill="currentColor" d="M14.2 10.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.4 1.2 0 1.6-.8 3.1-.8 1.4 0 1.8.8 3.1.7 1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.7-1-2.7-3.7ZM11.9 3.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3Z"/></svg>
+        <span data-i18n="dl.mac">Télécharger pour Mac</span>
+      </a>
+      <a class="store-badge" href="#" rel="noopener" aria-label="Télécharger dans le Mac App Store" data-i18n-aria="aria.store" data-app-store hidden>
+        <img src="badges/fr.svg" height="50" alt="" data-store-badge>
+      </a>
+      <a class="button ghost" href="https://github.com/moifort/minimal-stats" rel="noopener" data-i18n="dl.code">Voir le code</a>
+    </div>
+    <p class="hero-meta" data-i18n="dl.meta"><span data-version>Dernière version</span> · macOS 26 · Apple Silicon</p>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <h2 class="section-title" data-i18n="faq.title">Questions fréquentes</h2>
+    <div class="faq-list">
+      <details>
+        <summary data-i18n="faq.q1">Pourquoi c'est gratuit&nbsp;?</summary>
+        <p data-i18n="faq.a1">Parce que Stats ne coûte rien à faire tourner&nbsp;: pas de serveur, pas de compte. Son code est public sur GitHub, sous licence MIT.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q2">Stats envoie-t-il des données&nbsp;?</summary>
+        <p data-i18n="faq.a2">Non. Tout est mesuré sur votre Mac et y reste. La seule connexion de Stats est la vérification des mises à jour auprès de GitHub, une fois par jour. <a href="privacy.html">Confidentialité</a></p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q3">Sur quels Mac&nbsp;?</summary>
+        <p data-i18n="faq.a3">macOS 26 ou plus récent, sur un Mac à puce Apple, du M1 aux plus récents.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q4">Pourquoi le processeur ne dépasse-t-il jamais 100&nbsp;%&nbsp;?</summary>
+        <p data-i18n="faq.a4">Stats compte en part de tout le Mac, de 0 à 100&nbsp;%. Le Moniteur d'activité compte par cœur, jusqu'à 800&nbsp;% sur huit cœurs&nbsp;: les deux disent la même chose.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q5">Comment le quitter ou le désinstaller&nbsp;?</summary>
+        <p data-i18n="faq.a5">Clic droit sur les graphiques&nbsp;: «&nbsp;Quit Stats&nbsp;» le ferme, «&nbsp;Uninstall…&nbsp;» retire l'ouverture à la connexion et met l'app à la corbeille. Supprimer Stats.app des Applications suffit aussi.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q6">Et sur le Mac App Store&nbsp;?</summary>
+        <p data-i18n="faq.a6">Une version est prévue. Le bac à sable d'Apple empêche de mesurer les autres apps&nbsp;: elle n'aura que les widgets, les chiffres et le réseau par app. Pour la version complète, préférez le téléchargement direct.</p>
+      </details>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p data-i18n="footer.credit">Stats est un projet open source de <a href="https://github.com/moifort" rel="noopener">Polyforms</a>, sous licence MIT.</p>
+  <p><a href="https://github.com/moifort/minimal-stats/releases" data-i18n="footer.releases">Toutes les versions</a> · <a href="https://github.com/moifort/minimal-stats/issues" data-i18n="footer.issues">Signaler un problème</a> · <a href="https://github.com/moifort/minimal-stats#readme" data-i18n="footer.docs">Documentation</a> · <a href="privacy.html" data-i18n="footer.privacy">Confidentialité</a></p>
+</footer>
+
+<script src="i18n.js?v=20261111-3"></script>
+</body>
+</html>
