@@ -127,20 +127,8 @@ private struct TopProcessesSection: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Picker("", selection: $model.processSort) {
-                ForEach(ProcessSort.available, id: \.self) { sort in
-                    if let help = sort.help {
-                        Text(sort.title).help(help).tag(sort)
-                    } else {
-                        Text(sort.title).tag(sort)
-                    }
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            // As wide as the dividers: the four French tabs need 263 points, and
-            // with the 4-point inset of the rows they had 258, so a refresh
-            // could push the whole popover sideways.
+            ProcessTabs(selection: $model.processSort, tabs: ProcessSort.available)
+            // As wide as the dividers: the four French tabs need 263 points.
             .padding(.bottom, 4)
 
             // Always render the same number of rows so the panel never resizes
@@ -216,6 +204,59 @@ private struct TopProcessesSection: View {
             .accessibilityLabel(String(localized: "Quit \(row.name)"))
         } else {
             Color.clear.frame(width: 16, height: 16)
+        }
+    }
+}
+
+// MARK: - Tabs
+
+/// The tab bar: the same AppKit segmented control a segmented `Picker` draws,
+/// but always exactly as wide as SwiftUI offers. The `Picker` sometimes
+/// re-measured itself on a refresh, asked for its ideal width (segments of
+/// equal width, wider than the popover in French) and pushed the whole
+/// popover sideways for a frame.
+private struct ProcessTabs: NSViewRepresentable {
+    @Binding var selection: ProcessSort
+    let tabs: [ProcessSort]
+
+    func makeNSView(context: Context) -> NSSegmentedControl {
+        let control = NSSegmentedControl(
+            labels: tabs.map(\.title),
+            trackingMode: .selectOne,
+            target: context.coordinator,
+            action: #selector(Coordinator.changed(_:))
+        )
+        control.segmentDistribution = .fillProportionally
+        control.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        control.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        for (index, tab) in tabs.enumerated() {
+            control.setToolTip(tab.help, forSegment: index)
+        }
+        return control
+    }
+
+    func updateNSView(_ control: NSSegmentedControl, context: Context) {
+        context.coordinator.parent = self
+        let index = tabs.firstIndex(of: selection) ?? 0
+        if control.selectedSegment != index {
+            control.selectedSegment = index
+        }
+    }
+
+    /// The width offered, never the control's own idea of it.
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView control: NSSegmentedControl, context: Context) -> CGSize? {
+        CGSize(width: proposal.width ?? control.intrinsicContentSize.width, height: control.intrinsicContentSize.height)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    final class Coordinator: NSObject {
+        var parent: ProcessTabs
+        init(parent: ProcessTabs) { self.parent = parent }
+
+        @objc func changed(_ control: NSSegmentedControl) {
+            guard parent.tabs.indices.contains(control.selectedSegment) else { return }
+            parent.selection = parent.tabs[control.selectedSegment]
         }
     }
 }
