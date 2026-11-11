@@ -51,19 +51,20 @@
       ctx.globalAlpha = 0.35; ctx.fillRect(0, bottom, w, Math.max(1, 0.8 * s)); ctx.globalAlpha = 1;
     },
     net(ctx, w, h, color) {
-      // Square-root scale, as in the app: light traffic stays visible after a burst.
-      const s = h / 22, mid = h / 2, half = h / 2 - 2 * s;
+      // Mirrored as in the app: upload hangs from the top edge, download rises
+      // from the bottom edge, on one square-root scale (light traffic stays
+      // visible after a burst).
+      const s = h / 22, top = 2 * s, bottom = h - 2 * s, half = (bottom - top) / 2;
       const peak = Math.sqrt(Math.max(...netIn, ...netOut, 1e5));
       const x = (i) => (w - 1) * i / (netIn.length - 1);
-      const area = (series, sign) => {
-        ctx.beginPath(); ctx.moveTo(0, mid);
-        series.forEach((v, i) => ctx.lineTo(x(i), mid + sign * half * Math.sqrt(v) / peak));
-        ctx.lineTo(w, mid); ctx.closePath(); ctx.fill();
+      const area = (series, edge, sign) => {
+        ctx.beginPath(); ctx.moveTo(0, edge);
+        series.forEach((v, i) => ctx.lineTo(x(i), edge + sign * half * Math.sqrt(v) / peak));
+        ctx.lineTo(w, edge); ctx.closePath(); ctx.fill();
       };
       ctx.fillStyle = color;
-      ctx.globalAlpha = 0.9; area(netOut, -1);
-      ctx.globalAlpha = 0.45; area(netIn, 1);
-      ctx.globalAlpha = 1;
+      area(netOut, top, 1);
+      area(netIn, bottom, -1);
     },
     mem(ctx, w, h, color) {
       // A pill, filled from the bottom to the share in use, as on the widget.
