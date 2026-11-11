@@ -2,10 +2,9 @@
 # Limits: name and subtitle 30 characters, keywords 100, promotional 170,
 # description and whats_new 4000, and the store refuses emojis in them.
 #
-# `%{name}` is the public App Store name, which is not chosen yet: "Stats"
-# alone is almost certainly taken. listing.rb takes it from APP_STORE_NAME
-# (docs/app-store.md). The app itself stays "Stats" in the menu bar and in
-# Applications. A locale can write its own name instead of %{name}.
+# `%{name}` is the public App Store name, "Minimal Stats" (listing.rb,
+# APP_STORE_NAME overrides it). The app itself stays "Stats" in the menu bar
+# and in Applications. A locale can write its own name instead of %{name}.
 #
 # The app speaks English and French (Sources/Stats/Localizable.xcstrings),
 # and so does the listing. Describes the App Store build: no CPU or Memory

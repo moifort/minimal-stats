@@ -11,7 +11,7 @@ cask "minimal-stats" do
   url "https://github.com/moifort/minimal-stats/releases/download/v#{version}/Stats.dmg"
   name "Stats"
   desc "Menu bar CPU, network, memory and disk charts"
-  homepage "https://moifort.github.io/minimal-stats/"
+  homepage "https://stats.polyforms.co/"
 
   livecheck do
     url :url

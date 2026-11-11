@@ -3,11 +3,11 @@
 # rating, copyright, free price in every territory, in every locale of
 # listing.yml. Safe to run again: it only overwrites what is written here.
 #
-#   APP_STORE_NAME="Stats: …" ASC_KEY_ID=… ASC_ISSUER_ID=… ruby scripts/app-store/listing.rb
+#   ASC_KEY_ID=… ASC_ISSUER_ID=… ruby scripts/app-store/listing.rb
 #
-# APP_STORE_NAME is the public name on the store (30 characters at most),
-# put in place of %{name} in listing.yml: still to be chosen, "Stats" alone
-# is almost certainly taken (docs/app-store.md).
+# The public name on the store, put in place of %{name} in listing.yml, is
+# "Minimal Stats" ("Stats" alone is taken); APP_STORE_NAME overrides it, 30
+# characters at most. The app keeps "Stats" in the menu bar and Applications.
 #
 # The App Privacy answers and the screenshots have no public API: they are set
 # once in App Store Connect (docs/app-store.md).
@@ -15,11 +15,10 @@ require_relative "asc"
 require "yaml"
 
 BUNDLE_ID = ASC::BUNDLE_ID
-# GitHub Pages' address until a custom domain is set (docs/app-store.md).
-SITE = ENV.fetch("SITE_URL", "https://moifort.github.io/minimal-stats/")
+# The site, on GitHub Pages under Polyforms' domain like Dictate's.
+SITE = ENV.fetch("SITE_URL", "https://stats.polyforms.co/")
 SUPPORT = "https://github.com/moifort/minimal-stats/issues"
-NAME = ENV["APP_STORE_NAME"].to_s.strip
-abort("Set APP_STORE_NAME, the public name on the App Store (docs/app-store.md)") if NAME.empty?
+NAME = ENV.fetch("APP_STORE_NAME", "Minimal Stats").strip
 
 # Texts per App Store locale: listing.yml.
 LISTING = YAML.safe_load(File.read(File.join(__dir__, "listing.yml")), symbolize_names: true)
