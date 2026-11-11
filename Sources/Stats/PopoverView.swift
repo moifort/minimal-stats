@@ -39,7 +39,7 @@ struct PopoverView: View {
             actionButton("Activity Monitor", systemImage: "gauge.with.dots.needle.33percent") {
                 onOpenActivityMonitor?()
             }
-            actionButton("Quit", systemImage: "xmark") {
+            actionButton("Quit Stats", systemImage: "xmark") {
                 onQuit?()
             }
             actionButton("Uninstall\u{2026}", systemImage: "trash") {
