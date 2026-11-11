@@ -129,14 +129,18 @@ Done on 2026-11-11: identifier registered, record created, `profile.rb`,
 `listing.rb` (en-US, fr-FR, Utilities and Developer Tools, no age rating,
 free, 175 territories), `review.rb`, and App Privacy published as Data Not
 Collected. A package built locally with the profile passed
-`altool --validate-app` with no error; nothing was uploaded.
+`altool --validate-app` with no error; nothing was uploaded. One screenshot
+per locale is uploaded (`screenshots.rb`).
+
+The screenshots, `docs/app-store-screenshots/<locale>/*.jpg`, are rendered
+by `scripts/app-store/render-screenshots.swift` from two captures of the App
+Store build itself: the widgets (`StatusBarView` drawn in a dark
+`NSHostingView`) and the popover window (`screencapture -l`), opened in
+English and in French (`-AppleLanguages "(fr)"`).
 
 ### Left to do, in order
 
-1. **Screenshots**: 2880×1800 (or 2560×1600, 1440×900) of the menu bar and
-   the popover, in `docs/app-store-screenshots/en-US/` and `fr-FR/`, then
-   `ruby scripts/app-store/screenshots.rb`.
-2. **Secrets and variable** above, then **push a tag**: the release uploads
+1. **Secrets and variable** above, then **push a tag**: the release uploads
    the build, then `ruby scripts/app-store/submit.rb <version> <build>`
    submits it for review.
 
