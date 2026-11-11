@@ -7,8 +7,8 @@
 # (docs/app-store.md). The app itself stays "Stats" in the menu bar and in
 # Applications. A locale can write its own name instead of %{name}.
 #
-# The app speaks English only: the listing exists in English, and in French,
-# the author's language. Describes the App Store build: no CPU or Memory
+# The app speaks English and French (Sources/Stats/Localizable.xcstrings),
+# and so does the listing. Describes the App Store build: no CPU or Memory
 # process lists, no quit buttons (docs/app-store.md).
 en-US:
   name: "%{name}"

@@ -44,7 +44,7 @@ struct PopoverView: View {
         }
     }
 
-    private func actionButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+    private func actionButton(_ title: LocalizedStringKey, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
@@ -87,7 +87,7 @@ private struct SystemStatsSection: View {
 
 private struct StatRow<Value: View>: View {
     var systemImage: String
-    var title: String
+    var title: LocalizedStringKey
     @ViewBuilder var value: Value
 
     var body: some View {
@@ -130,9 +130,9 @@ private struct TopProcessesSection: View {
             Picker("", selection: $model.processSort) {
                 ForEach(ProcessSort.available, id: \.self) { sort in
                     if let help = sort.help {
-                        Text(sort.rawValue).help(help).tag(sort)
+                        Text(sort.title).help(help).tag(sort)
                     } else {
-                        Text(sort.rawValue).tag(sort)
+                        Text(sort.title).tag(sort)
                     }
                 }
             }
@@ -210,8 +210,8 @@ private struct TopProcessesSection: View {
             }
             .buttonStyle(.plain)
             .padding(-Self.quitHitOutset)
-            .help("Quit \(row.name)")
-            .accessibilityLabel("Quit \(row.name)")
+            .help(String(localized: "Quit \(row.name)"))
+            .accessibilityLabel(String(localized: "Quit \(row.name)"))
         } else {
             Color.clear.frame(width: 16, height: 16)
         }
@@ -221,9 +221,13 @@ private struct TopProcessesSection: View {
 // MARK: - Formatting
 
 enum Format {
+    /// Figures follow the interface's language, not the region: a French
+    /// interface writes 1,2Go, an English one 1.2GB.
+    static var french = Bundle.main.preferredLocalizations.first?.hasPrefix("fr") == true
+
     static func percent(_ value: Double?, decimals: Int = 0) -> String {
         guard let value else { return "–" }
-        return String(format: "%.\(decimals)f%%", value)
+        return decimal(String(format: "%.\(decimals)f%%", value))
     }
 
     /// Decimal units (1 KB = 1000 B), matching Finder and network tools
@@ -250,11 +254,11 @@ enum Format {
 
     /// R for read and W for written: arrows already mean received and sent
     static func readWrite(_ bytesRead: Double, _ bytesWritten: Double) -> String {
-        "R \(bytes(bytesRead))  W \(bytes(bytesWritten))"
+        french ? "L \(bytes(bytesRead))  É \(bytes(bytesWritten))" : "R \(bytes(bytesRead))  W \(bytes(bytesWritten))"
     }
 
     private static func scaled(_ value: Double, base: Double, decimals: Int?) -> String {
-        let units = ["B", "KB", "MB", "GB", "TB"]
+        let units = french ? ["o", "Ko", "Mo", "Go", "To"] : ["B", "KB", "MB", "GB", "TB"]
         var scaled = max(value, 0)
         var unit = 0
         while scaled >= base, unit < units.count - 1 {
@@ -263,7 +267,12 @@ enum Format {
         }
         // One decimal below 100 keeps small values readable without jitter on large ones
         let digits = decimals ?? (unit == 0 || scaled >= 100 ? 0 : 1)
-        return String(format: "%.\(digits)f%@", scaled, units[unit])
+        return decimal(String(format: "%.\(digits)f%@", scaled, units[unit]))
+    }
+
+    /// The decimal comma of a French interface; `String(format:)` always writes a point.
+    private static func decimal(_ text: String) -> String {
+        french ? text.replacingOccurrences(of: ".", with: ",") : text
     }
 }
 

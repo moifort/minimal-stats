@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.addSubview(view)
             button.frame.size = view.frame.size
             // VoiceOver reads the button, not the charts drawn inside it
-            button.setAccessibilityLabel("Stats")
+            button.setAccessibilityLabel(String(localized: "Stats"))
             button.setAccessibilityValue(statusBarModel.accessibilitySummary)
         }
 
@@ -152,17 +152,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         closePanel()
         let menu = NSMenu()
         if Distribution.offersOpenAtLogin {
-            let openAtLogin = NSMenuItem(title: "Open at Login", action: #selector(toggleOpenAtLogin), keyEquivalent: "")
+            let openAtLogin = NSMenuItem(title: String(localized: "Open at Login"), action: #selector(toggleOpenAtLogin), keyEquivalent: "")
             openAtLogin.target = self
             openAtLogin.state = SMAppService.mainApp.status == .enabled ? .on : .off
             menu.addItem(openAtLogin)
         }
         if Distribution.hasUninstaller {
-            let uninstall = NSMenuItem(title: "Uninstall\u{2026}", action: #selector(uninstallFromMenu), keyEquivalent: "")
+            let uninstall = NSMenuItem(title: String(localized: "Uninstall\u{2026}"), action: #selector(uninstallFromMenu), keyEquivalent: "")
             uninstall.target = self
             menu.addItem(uninstall)
         }
-        let quit = NSMenuItem(title: "Quit Stats", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        let quit = NSMenuItem(title: String(localized: "Quit Stats"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quit.target = NSApp
         menu.addItem(quit)
         // A menu set on the item opens at the standard place under it; removing it
@@ -187,7 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } catch {
             let alert = NSAlert()
-            alert.messageText = "Open at Login Failed"
+            alert.messageText = String(localized: "Open at Login Failed")
             alert.informativeText = error.localizedDescription
             alert.alertStyle = .warning
             alert.addButton(withTitle: "OK")
@@ -292,11 +292,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func confirmQuitProcess(pid: pid_t, name: String) {
         let alert = NSAlert()
-        alert.messageText = "Quit \(name)?"
-        alert.informativeText = "Unsaved changes in this process may be lost."
+        alert.messageText = String(localized: "Quit \(name)?")
+        alert.informativeText = String(localized: "Unsaved changes in this process may be lost.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Quit")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
 
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -305,11 +305,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func performUninstall() {
         let alert = NSAlert()
-        alert.messageText = "Uninstall Stats?"
-        alert.informativeText = "This will remove the login item and move the app to the Trash."
+        alert.messageText = String(localized: "Uninstall Stats?")
+        alert.informativeText = String(localized: "This will remove the login item and move the app to the Trash.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Uninstall")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: String(localized: "Uninstall"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
 
         // An LSUIElement app is not active: without this the alert can open behind other windows
         NSApp.activate(ignoringOtherApps: true)
@@ -338,8 +338,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showUninstallFailure(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "Uninstall Failed"
-        alert.informativeText = "Stats could not be moved to the Trash: \(error.localizedDescription)"
+        alert.messageText = String(localized: "Uninstall Failed")
+        alert.informativeText = String(localized: "Stats could not be moved to the Trash: \(error.localizedDescription)")
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
         NSApp.activate(ignoringOtherApps: true)
@@ -374,7 +374,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         p.isReleasedWhenClosed = false
-        p.title = "Update to v\(info.latestRelease.version)"
+        p.title = String(localized: "Update to v\(info.latestRelease.version)")
         p.isFloatingPanel = true
         p.level = .floating
         p.contentView = NSHostingView(rootView: contentView)

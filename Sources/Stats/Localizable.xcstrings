@@ -1,0 +1,429 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "": {
+      "shouldTranslate": false
+    },
+    "%@ / %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ / %2$@"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "%lld minutes": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "les %lld dernières minutes"
+          }
+        }
+      }
+    },
+    "Activity Monitor": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moniteur d'activité"
+          }
+        }
+      }
+    },
+    "CPU": {
+      "comment": "Popover row and tab: \"Processeur\" would widen the tab bar past the popover, CPU is usual in French",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU"
+          }
+        }
+      }
+    },
+    "CPU %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "processeur %@"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annuler"
+          }
+        }
+      }
+    },
+    "Data read (R) and written (W) over the last %@, by your own apps only: macOS does not report it for system processes": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Données lues (L) et écrites (É) sur %@, par vos propres apps seulement : macOS ne les donne pas pour les processus système"
+          }
+        }
+      }
+    },
+    "Data received and sent over the last %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Données reçues et envoyées sur %@"
+          }
+        }
+      }
+    },
+    "Disk": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disque"
+          }
+        }
+      }
+    },
+    "Free": {
+      "shouldTranslate": false
+    },
+    "Install": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installer"
+          }
+        }
+      }
+    },
+    "Later": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus tard"
+          }
+        }
+      }
+    },
+    "Memory": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mémoire"
+          }
+        }
+      }
+    },
+    "Network": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réseau"
+          }
+        }
+      }
+    },
+    "No app bundle was found in the downloaded archive.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune app n'a été trouvée dans l'archive téléchargée."
+          }
+        }
+      }
+    },
+    "Open at Login": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir à la connexion"
+          }
+        }
+      }
+    },
+    "Open at Login Failed": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'ouvrir Stats à la connexion"
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter"
+          }
+        }
+      }
+    },
+    "Quit %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter %@"
+          }
+        }
+      }
+    },
+    "Quit %@?": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter %@ ?"
+          }
+        }
+      }
+    },
+    "Quit Stats": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter Stats"
+          }
+        }
+      }
+    },
+    "Stats": {
+      "shouldTranslate": false
+    },
+    "Stats could not be moved to the Trash: %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stats n'a pas pu être placé dans la corbeille : %@"
+          }
+        }
+      }
+    },
+    "The download did not come from GitHub over HTTPS.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléchargement ne venait pas de GitHub en HTTPS."
+          }
+        }
+      }
+    },
+    "The downloaded app is not Stats.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app téléchargée n'est pas Stats."
+          }
+        }
+      }
+    },
+    "The downloaded app is not newer than the installed one.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app téléchargée n'est pas plus récente que celle installée."
+          }
+        }
+      }
+    },
+    "The downloaded archive could not be extracted.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'archive téléchargée n'a pas pu être décompressée."
+          }
+        }
+      }
+    },
+    "The server answered with HTTP status %lld.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur a répondu avec le statut HTTP %lld."
+          }
+        }
+      }
+    },
+    "The update could not be installed: %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mise à jour n'a pas pu être installée : %@"
+          }
+        }
+      }
+    },
+    "This will remove the login item and move the app to the Trash.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stats ne s'ouvrira plus à la connexion et l'app sera placée dans la corbeille."
+          }
+        }
+      }
+    },
+    "Time": {
+      "shouldTranslate": false
+    },
+    "Uninstall": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désinstaller"
+          }
+        }
+      }
+    },
+    "Uninstall Failed": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de la désinstallation"
+          }
+        }
+      }
+    },
+    "Uninstall Stats?": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désinstaller Stats ?"
+          }
+        }
+      }
+    },
+    "Uninstall…": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désinstaller…"
+          }
+        }
+      }
+    },
+    "Unsaved changes in this process may be lost.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les modifications non enregistrées de ce processus pourraient être perdues."
+          }
+        }
+      }
+    },
+    "Update Failed": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de la mise à jour"
+          }
+        }
+      }
+    },
+    "Update to v%@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mise à jour vers la v%@"
+          }
+        }
+      }
+    },
+    "Update v%@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettre à jour (v%@)"
+          }
+        }
+      }
+    },
+    "Used": {
+      "shouldTranslate": false
+    },
+    "Value": {
+      "shouldTranslate": false
+    },
+    "disk %@ of %@ used": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "disque %@ utilisés sur %@"
+          }
+        }
+      }
+    },
+    "download %@/s, upload %@/s": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "réception %@/s, envoi %@/s"
+          }
+        }
+      }
+    },
+    "memory %@ of %@": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mémoire %@ sur %@"
+          }
+        }
+      }
+    },
+    "minute": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la dernière minute"
+          }
+        }
+      }
+    },
+    "v%@": {
+      "shouldTranslate": false
+    }
+  },
+  "version": "1.0"
+}

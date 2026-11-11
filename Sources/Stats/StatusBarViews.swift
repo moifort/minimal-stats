@@ -33,10 +33,10 @@ final class StatusBarModel: ObservableObject {
     /// The four widgets in words, for VoiceOver
     var accessibilitySummary: String {
         [
-            "CPU \(Format.percent(cpuHistory.last))",
-            "memory \(Format.memory(memoryUsed)) of \(Format.memory(memoryTotal, decimals: 0))",
-            "download \(Format.bytes(netInHistory.last ?? 0))/s, upload \(Format.bytes(netOutHistory.last ?? 0))/s",
-            "disk \(Format.bytes(Double(diskTotal - diskFree))) of \(Format.bytes(Double(diskTotal), decimals: 0)) used",
+            String(localized: "CPU \(Format.percent(cpuHistory.last))"),
+            String(localized: "memory \(Format.memory(memoryUsed)) of \(Format.memory(memoryTotal, decimals: 0))"),
+            String(localized: "download \(Format.bytes(netInHistory.last ?? 0))/s, upload \(Format.bytes(netOutHistory.last ?? 0))/s"),
+            String(localized: "disk \(Format.bytes(Double(diskTotal - diskFree))) of \(Format.bytes(Double(diskTotal), decimals: 0)) used"),
         ].joined(separator: ", ")
     }
 }
@@ -44,19 +44,29 @@ final class StatusBarModel: ObservableObject {
 enum ProcessSort: String, CaseIterable {
     case cpu = "CPU", memory = "Memory", network = "Network", disk = "Disk"
 
+    /// The tab's name, in the interface's language
+    var title: String {
+        switch self {
+        case .cpu: return String(localized: "CPU")
+        case .memory: return String(localized: "Memory")
+        case .network: return String(localized: "Network")
+        case .disk: return String(localized: "Disk")
+        }
+    }
+
     /// CPU and Memory are instantaneous; a cumulated tab says over which period.
     var help: String? {
         switch self {
         case .cpu, .memory: return nil
-        case .network: return "Data received and sent over the last \(Self.windowText(NetworkProcessSampler.window))"
+        case .network: return String(localized: "Data received and sent over the last \(Self.windowText(NetworkProcessSampler.window))")
         case .disk:
-            return "Data read (R) and written (W) over the last \(Self.windowText(DiskProcessSampler.window)), by your own apps only: macOS does not report it for system processes"
+            return String(localized: "Data read (R) and written (W) over the last \(Self.windowText(DiskProcessSampler.window)), by your own apps only: macOS does not report it for system processes")
         }
     }
 
     private static func windowText(_ window: TimeInterval) -> String {
         let minutes = Int(window / 60)
-        return minutes == 1 ? "minute" : "\(minutes) minutes"
+        return minutes == 1 ? String(localized: "minute") : String(localized: "\(minutes) minutes")
     }
 }
 
