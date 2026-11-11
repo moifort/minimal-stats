@@ -28,7 +28,7 @@ The app starts automatically at login and runs silently in the background with n
 
 ### Download
 
-1. Download `Stats.dmg` from the [latest release](https://github.com/moifort/minimal-stats/releases/latest)
+1. Download [`Stats.dmg`](https://github.com/moifort/minimal-stats/releases/latest/download/Stats.dmg) from the [latest release](https://github.com/moifort/minimal-stats/releases/latest)
 2. Open it and drag **Stats** onto **Applications**
 3. Open Stats from Applications: it is signed with a Developer ID and notarized by Apple, so it opens like any other app
 

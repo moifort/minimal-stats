@@ -148,9 +148,8 @@
   for (const el of document.querySelectorAll(".reveal")) revealer.observe(el);
 
   // The GitHub API is public for this; failing silently keeps the generic label.
-  // The download links point at the latest release's page, which always
-  // exists; they take its disk image directly once it has one (from 1.12 on),
-  // as Dictate's page does.
+  // The download links fetch the latest release's disk image directly, which
+  // opens on the install window; this only confirms the asset's address.
   fetch("https://api.github.com/repos/moifort/minimal-stats/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
     .then((r) => (r.ok ? r.json() : null))
     .then((release) => {
