@@ -42,6 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.subviews.forEach { $0.removeFromSuperview() }
             button.addSubview(view)
             button.frame.size = view.frame.size
+            // VoiceOver reads the button, not the charts drawn inside it
+            button.setAccessibilityLabel("Stats")
+            button.setAccessibilityValue(statusBarModel.accessibilitySummary)
         }
 
         registerLoginItemOnFirstLaunch()
@@ -193,7 +196,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.view.layer?.backgroundColor = .clear
         let contentSize = controller.view.fittingSize
 
-        let p = NSPanel(
+        let p = PopoverPanel(
             contentRect: NSRect(origin: .zero, size: contentSize),
             styleMask: [.nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
@@ -229,6 +232,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             p.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
+        p.onCancel = { [weak self] in self?.closePanel() }
+        // Key without activating Stats, so Escape reaches the panel
         p.makeKeyAndOrderFront(nil)
         panel = p
 
@@ -365,6 +370,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarModel.diskFree = stats.diskFree
         statusBarModel.diskTotal = stats.diskTotal
         statusBarModel.memoryUsed = stats.memoryUsed
+        statusItem?.button?.setAccessibilityValue(statusBarModel.accessibilitySummary)
     }
 
     private func refreshProcesses() {
@@ -414,7 +420,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// The widgets drawn inside the status item button. Clicks go straight to the
-/// button, so it sees left and right clicks alike.
+/// button, so it sees left and right clicks alike, and so does accessibility.
 private final class ClickThroughHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override func isAccessibilityElement() -> Bool { false }
+    override func accessibilityChildren() -> [Any]? { nil }
+}
+
+/// The popover's borderless panel. Borderless windows cannot become key by
+/// default, which left Escape with nowhere to go.
+private final class PopoverPanel: NSPanel {
+    var onCancel: (() -> Void)?
+
+    override var canBecomeKey: Bool { true }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == Self.escapeKeyCode {
+            onCancel?()
+            return
+        }
+        super.sendEvent(event)
+    }
+
+    private static let escapeKeyCode: UInt16 = 53
 }

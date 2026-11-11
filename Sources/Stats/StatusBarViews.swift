@@ -27,6 +27,16 @@ final class StatusBarModel: ObservableObject {
     var memoryUsedFraction: Double {
         memoryTotal > 0 ? Double(memoryUsed) / Double(memoryTotal) : 0
     }
+
+    /// The four widgets in words, for VoiceOver
+    var accessibilitySummary: String {
+        [
+            "CPU \(Format.percent(cpuHistory.last))",
+            "memory \(Format.memory(memoryUsed)) of \(Format.memory(memoryTotal, decimals: 0))",
+            "download \(Format.bytes(netInHistory.last ?? 0))/s, upload \(Format.bytes(netOutHistory.last ?? 0))/s",
+            "disk \(Format.bytes(Double(diskTotal - diskFree))) of \(Format.bytes(Double(diskTotal), decimals: 0)) used",
+        ].joined(separator: ", ")
+    }
 }
 
 enum ProcessSort: String, CaseIterable {

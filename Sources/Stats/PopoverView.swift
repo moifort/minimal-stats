@@ -123,6 +123,7 @@ private struct TopProcessesSection: View {
     }
 
     private static let rowCount = 5
+    private static let quitHitOutset: CGFloat = 3
 
     var body: some View {
         VStack(spacing: 2) {
@@ -198,10 +199,15 @@ private struct TopProcessesSection: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .frame(width: 16, height: 16)
+                    // A 22 pt target around the 16 pt icon; the negative padding
+                    // below keeps the 16 pt layout, so values stay aligned.
+                    .padding(Self.quitHitOutset)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .padding(-Self.quitHitOutset)
             .help("Quit \(row.name)")
+            .accessibilityLabel("Quit \(row.name)")
         } else {
             Color.clear.frame(width: 16, height: 16)
         }
