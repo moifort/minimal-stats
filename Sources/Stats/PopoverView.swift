@@ -6,7 +6,6 @@ struct PopoverView: View {
     var onUpdate: (() -> Void)?
     var onOpenActivityMonitor: (() -> Void)?
     var onQuit: (() -> Void)?
-    var onUninstall: (() -> Void)?
     var onQuitProcess: ((pid_t, String) -> Void)?
 
     var body: some View {
@@ -41,9 +40,6 @@ struct PopoverView: View {
             }
             actionButton("Quit Stats", systemImage: "xmark") {
                 onQuit?()
-            }
-            actionButton("Uninstall\u{2026}", systemImage: "trash") {
-                onUninstall?()
             }
         }
     }

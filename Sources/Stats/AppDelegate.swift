@@ -30,14 +30,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stats.refresh()
         applyStats()
 
-        let view = NSHostingView(rootView: StatusBarView(model: statusBarModel))
+        let view = ClickThroughHostingView(rootView: StatusBarView(model: statusBarModel))
         let barWidth = view.fittingSize.width
         view.frame = NSRect(x: 0, y: 0, width: barWidth, height: 22)
 
         statusItem = NSStatusBar.system.statusItem(withLength: barWidth)
         if let button = statusItem.button {
             button.target = self
-            button.action = #selector(togglePopover)
+            button.action = #selector(statusItemClicked)
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.subviews.forEach { $0.removeFromSuperview() }
             button.addSubview(view)
             button.frame.size = view.frame.size
@@ -123,6 +124,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.openApplication(at: url, configuration: .init())
     }
 
+    // MARK: – Status item menu
+
+    /// Left click opens the popover; right click (or control-click) opens a menu
+    /// that only holds the rarely used actions.
+    @objc private func statusItemClicked() {
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
+            showStatusMenu()
+        } else {
+            togglePopover()
+        }
+    }
+
+    private func showStatusMenu() {
+        closePanel()
+        let menu = NSMenu()
+        let uninstall = NSMenuItem(title: "Uninstall\u{2026}", action: #selector(uninstallFromMenu), keyEquivalent: "")
+        uninstall.target = self
+        menu.addItem(uninstall)
+        let quit = NSMenuItem(title: "Quit Stats", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        quit.target = NSApp
+        menu.addItem(quit)
+        // A menu set on the item opens at the standard place under it; removing it
+        // afterwards keeps the left click on the popover.
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func uninstallFromMenu() {
+        performUninstall()
+    }
+
     // MARK: – Panel
 
     @objc private func togglePopover() {
@@ -147,10 +181,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onQuit: {
                 NSApplication.shared.terminate(nil)
-            },
-            onUninstall: { [weak self] in
-                self?.closePanel()
-                self?.performUninstall()
             },
             onQuitProcess: { [weak self] pid, name in
                 self?.closePanel()
@@ -382,4 +412,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func refreshNetworkProcesses() {
         networkProcessSampler.refresh()
     }
+}
+
+/// The widgets drawn inside the status item button. Clicks go straight to the
+/// button, so it sees left and right clicks alike.
+private final class ClickThroughHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
