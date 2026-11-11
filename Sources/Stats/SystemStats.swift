@@ -18,6 +18,10 @@ private let RTM_IFINFO2: UInt8 = 0x12
 /// interface: loopback, VPN tunnels, and bridges/VM taps that NAT out through en*.
 private let ignoredInterfacePrefixes = ["lo", "utun", "ipsec", "bridge", "vmenet"]
 
+/// Each mach_host_self() call adds a send right reference that is never released,
+/// so the port is fetched once.
+private let hostPort: mach_port_t = mach_host_self()
+
 final class SystemStats {
 
     // MARK: – State for delta-based metrics
@@ -170,7 +174,7 @@ final class SystemStats {
         )
         let kr = withUnsafeMutablePointer(to: &vmStats) { ptr in
             ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+                host_statistics64(hostPort, HOST_VM_INFO64, $0, &count)
             }
         }
         guard kr == KERN_SUCCESS else { return }
@@ -190,7 +194,7 @@ final class SystemStats {
         )
         let kr = withUnsafeMutablePointer(to: &loadInfo) { ptr in
             ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
+                host_statistics(hostPort, HOST_CPU_LOAD_INFO, $0, &count)
             }
         }
         guard kr == KERN_SUCCESS else { return nil }
