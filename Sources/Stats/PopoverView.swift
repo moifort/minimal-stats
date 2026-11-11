@@ -128,7 +128,7 @@ private struct TopProcessesSection: View {
     var body: some View {
         VStack(spacing: 2) {
             Picker("", selection: $model.processSort) {
-                ForEach(ProcessSort.allCases, id: \.self) { sort in
+                ForEach(ProcessSort.available, id: \.self) { sort in
                     if let help = sort.help {
                         Text(sort.rawValue).help(help).tag(sort)
                     } else {

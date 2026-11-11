@@ -51,7 +51,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.setAccessibilityValue(statusBarModel.accessibilitySummary)
         }
 
-        registerLoginItemOnFirstLaunch()
+        if Distribution.registersLoginItemAtFirstLaunch {
+            registerLoginItemOnFirstLaunch()
+        }
 
         // Unavailable when another app already owns the shortcut; clicks still work
         popoverHotKey = GlobalHotKey(GlobalHotKey.togglePopover) { [weak self] in
@@ -89,12 +91,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         networkProcessTimer = netTimer
         refreshByteCounters()
 
-        let updater = AutoUpdater()
-        updater.onUpdateAvailable = { [weak self] info in
-            self?.updateInfo = info
+        if Distribution.hasUpdater {
+            let updater = AutoUpdater()
+            updater.onUpdateAvailable = { [weak self] info in
+                self?.updateInfo = info
+            }
+            updater.startPeriodicChecks()
+            autoUpdater = updater
         }
-        updater.startPeriodicChecks()
-        autoUpdater = updater
     }
 
     // MARK: – Login item
@@ -155,9 +159,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showStatusMenu() {
         closePanel()
         let menu = NSMenu()
-        let uninstall = NSMenuItem(title: "Uninstall\u{2026}", action: #selector(uninstallFromMenu), keyEquivalent: "")
-        uninstall.target = self
-        menu.addItem(uninstall)
+        if Distribution.offersOpenAtLogin {
+            let openAtLogin = NSMenuItem(title: "Open at Login", action: #selector(toggleOpenAtLogin), keyEquivalent: "")
+            openAtLogin.target = self
+            openAtLogin.state = SMAppService.mainApp.status == .enabled ? .on : .off
+            menu.addItem(openAtLogin)
+        }
+        if Distribution.hasUninstaller {
+            let uninstall = NSMenuItem(title: "Uninstall\u{2026}", action: #selector(uninstallFromMenu), keyEquivalent: "")
+            uninstall.target = self
+            menu.addItem(uninstall)
+        }
         let quit = NSMenuItem(title: "Quit Stats", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quit.target = NSApp
         menu.addItem(quit)
@@ -170,6 +182,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func uninstallFromMenu() {
         performUninstall()
+    }
+
+    /// The App Store build opens at login only once the user asks (guideline 2.4.5).
+    @objc private func toggleOpenAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Open at Login Failed"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
     }
 
     // MARK: – Panel

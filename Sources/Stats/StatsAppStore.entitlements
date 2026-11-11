@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Mac App Store build: sandboxed. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- For /usr/bin/nettop (Network tab), which inherits the sandbox: it reads
+	     the per-process counters through a network statistics socket, refused
+	     without this (nettop exits with status 70). Stats itself connects to
+	     nothing: the App Store installs the updates. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>

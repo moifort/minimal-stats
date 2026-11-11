@@ -20,7 +20,7 @@ final class StatusBarModel: ObservableObject {
     @Published var networkProcesses: [ProcessBytes] = []
     @Published var diskProcesses: [ProcessBytes] = []
     /// Kept here rather than in view state so the chosen tab survives reopening the popover
-    @Published var processSort: ProcessSort = .cpu
+    @Published var processSort: ProcessSort = ProcessSort.available[0]
 
     var diskUsedFraction: Double {
         diskTotal > 0 ? Double(diskTotal - diskFree) / Double(diskTotal) : 0
