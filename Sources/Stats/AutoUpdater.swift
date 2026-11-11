@@ -34,7 +34,7 @@ final class AutoUpdater {
         }
     }
 
-    private static let log = Logger(subsystem: "com.stats.menubar", category: "AutoUpdater")
+    private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "AutoUpdater")
 
     private let repo = "moifort/minimal-stats"
     private var timer: Timer?
@@ -221,8 +221,12 @@ final class AutoUpdater {
     }
 
     /// The extracted bundle must be Stats, and strictly newer than what runs now.
+    /// A copy still running as `com.stats.menubar` accepts `com.polyforms.stats`
+    /// (`AppIdentity.acceptsUpdate`).
     static func validate(newBundleInfo info: [String: Any], bundleIdentifier: String, currentVersion: String) throws {
-        guard !bundleIdentifier.isEmpty, info["CFBundleIdentifier"] as? String == bundleIdentifier else {
+        guard let downloaded = info["CFBundleIdentifier"] as? String,
+              AppIdentity.acceptsUpdate(from: bundleIdentifier, to: downloaded)
+        else {
             throw UpdateError.wrongBundleIdentifier
         }
         guard let version = info["CFBundleShortVersionString"] as? String,
