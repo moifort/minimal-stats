@@ -1,0 +1,5 @@
+# xcode-27 is the GitHub-hosted macOS 27 + Xcode 27 image Dictate runs on
+# (runner group "GitHub Actions"), newer than actionlint's list of labels.
+self-hosted-runner:
+  labels:
+    - xcode-27

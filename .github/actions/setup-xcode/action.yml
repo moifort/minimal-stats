@@ -1,0 +1,20 @@
+name: Set up Xcode
+description: >-
+  Selects the latest Xcode of the runner image, as Dictate's action does.
+  Stats is a Swift package with no dependency and no Xcode project: no
+  XcodeGen, no DerivedData cache.
+
+runs:
+  using: composite
+  steps:
+    # Pinned by commit, not by tag: a third-party action runs with the job's
+    # token and secrets, and a tag can be moved. v1.7.0.
+    - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90
+      with:
+        xcode-version: latest
+
+    - name: Show the toolchain
+      shell: bash
+      run: |
+        xcodebuild -version
+        swift --version

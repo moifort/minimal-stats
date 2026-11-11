@@ -1,0 +1,332 @@
+name: Release
+
+# One release per tag:
+#
+#   git tag -a v1.12.0 -m "What changes in this version…"
+#   git push origin v1.12.0
+#
+# Tests, builds the app, signs it with Developer ID, notarizes it and publishes
+# a GitHub release with a disk image (manual installs, Homebrew) and a zip
+# (the in-app updater). A manual run stops before publishing and leaves both
+# as run artifacts.
+#
+# The asset names never change, unlike Dictate's: every copy up to 1.11
+# downloads the release's .zip (only one may be attached), and the site links
+# to releases/latest/download/Stats.dmg.
+#
+# The tests and the build run side by side; the release is only published
+# once both pass.
+#
+# This is the Developer ID build. The Mac App Store build is the sandboxed
+# APP_STORE flavour, without the updater, the uninstaller and the per-process
+# CPU and memory: scripts/build-app-store.sh, docs/app-store.md.
+#
+# The Homebrew cask (moifort/homebrew-tap, docs/homebrew) needs nothing from
+# here: its own workflow checks the latest release every hour.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# Read-only by default: only the publish job writes, to create the release.
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: 📊 Unit tests
+    uses: ./.github/workflows/unit-tests.yml
+
+  build:
+    name: 📦 Build, sign & notarize
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      # Without a Developer ID certificate a manual run still builds an ad-hoc
+      # signed, non-notarized app to try; a tag fails rather than publish it.
+      SIGNED: ${{ secrets.DEVELOPER_ID_P12 != '' }}
+      APP: build/Stats.app
+      DMG: Stats.dmg
+      ZIP: Stats.app.zip
+    steps:
+      # Gatekeeper would block a manual install of an ad-hoc signed build, and
+      # every copy would update itself to it: a tag never publishes one.
+      - name: Require the Developer ID certificate on tags
+        if: env.SIGNED != 'true' && github.ref_type == 'tag'
+        run: |
+          echo "::error::DEVELOPER_ID_P12 is not set: a tag must not publish an ad-hoc signed, non-notarized build"
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the build number depends on it
+
+      - name: Set up Xcode
+        uses: ./.github/actions/setup-xcode
+
+      - name: Compute version numbers
+        run: |
+          set -euo pipefail
+          BUILD=$(git rev-list --count HEAD)
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            MARKETING="${GITHUB_REF_NAME#v}"
+          else
+            MARKETING="0.0.0-$(git rev-parse --short HEAD)"
+          fi
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "MARKETING=$MARKETING" >> "$GITHUB_ENV"
+          echo "Releasing Stats $MARKETING ($BUILD)"
+
+      # Signed by hand after the build, as Dictate does: the same command for
+      # both signing modes.
+      - name: Build the app
+        run: scripts/build-app.sh build
+
+      - name: Import the Developer ID identity
+        if: env.SIGNED == 'true'
+        env:
+          DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # A throwaway keychain: the login keychain is locked on a runner and
+          # codesign would wait for a password nobody will type.
+          KEYCHAIN="$RUNNER_TEMP/stats-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          CERT="$RUNNER_TEMP/developer-id.p12"
+          printf '%s' "$DEVELOPER_ID_P12" | base64 -d > "$CERT"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT" -P "$DEVELOPER_ID_P12_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # Split on purpose: one argument per keychain already in the list.
+          # shellcheck disable=SC2046
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | sed 's/["[:space:]]//g')
+          rm -f "$CERT"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      # Hardened runtime, no entitlements: the Developer ID build needs none.
+      - name: Sign the app
+        run: |
+          set -euo pipefail
+          if [ "$SIGNED" = "true" ]; then
+            IDENTITY="Developer ID Application"
+            TIMESTAMP=--timestamp
+          else
+            echo "::warning::DEVELOPER_ID_P12 is not set: ad-hoc signed, non-notarized build, not published"
+            IDENTITY=-
+            TIMESTAMP=
+          fi
+          codesign --force --options runtime $TIMESTAMP --sign "$IDENTITY" "$APP"
+          codesign --verify --strict --deep --verbose=2 "$APP"
+
+      # The disk image is for people installing by hand and for Homebrew: open
+      # it, drag the app onto the Applications alias. The updater keeps
+      # downloading the zip. scripts/build-dmg.sh lays the window out through
+      # Finder, which the macOS runners can drive like any logged-in session.
+      - name: Build the disk image
+        run: |
+          set -euo pipefail
+          scripts/build-dmg.sh "$APP" "$DMG"
+          if [ "$SIGNED" = "true" ]; then
+            codesign --force --timestamp --sign "Developer ID Application" "$DMG"
+          fi
+
+      # One submission covers both: the image's ticket also holds the app's.
+      # `notarytool --wait` can exit 0 on a rejected submission: read the status.
+      - name: Notarize and staple
+        if: env.SIGNED == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          KEY="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$ASC_KEY_P8" > "$KEY"
+          xcrun notarytool submit "$DMG" \
+            --key "$KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
+            --wait --timeout 30m --output-format json | tee "$RUNNER_TEMP/notary.json"
+          STATUS=$(plutil -extract status raw "$RUNNER_TEMP/notary.json")
+          if [ "$STATUS" != "Accepted" ]; then
+            ID=$(plutil -extract id raw "$RUNNER_TEMP/notary.json")
+            xcrun notarytool log "$ID" --key "$KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID"
+            rm -f "$KEY"
+            echo "::error::Notarization $STATUS"
+            exit 1
+          fi
+          rm -f "$KEY"
+          xcrun stapler staple "$APP"
+          xcrun stapler staple "$DMG"
+          spctl --assess --type execute --verbose "$APP"
+          spctl --assess --type open --context context:primary-signature --verbose "$DMG"
+
+      # Zipped after stapling, so the updated app carries its ticket too.
+      - name: Package the zip for the updater
+        run: ditto -c -k --keepParent "$APP" "$ZIP"
+
+      # The publish job picks the packages up from here.
+      - name: Archive the packages as a run artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Stats
+          path: |
+            Stats.dmg
+            Stats.app.zip
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    name: 🚀 Publish the release
+    needs: [test, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # create the tag's GitHub release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the tag annotation holds the notes
+
+      - name: Download the packages
+        uses: actions/download-artifact@v8
+        with:
+          name: Stats
+
+      # The notes are what the updater shows as the changelog.
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The notes live with the tag rather than in a CHANGELOG.
+          git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME" > notes.txt
+          if [ ! -s notes.txt ]; then
+            git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME" > notes.txt
+          fi
+          echo "---- Notes ----"; cat notes.txt
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.txt
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.txt
+          fi
+          gh release upload "$GITHUB_REF_NAME" Stats.dmg Stats.app.zip --clobber
+
+  # The Mac App Store build, from the same tag: sandboxed, signed with the
+  # Apple Distribution and Mac Installer Distribution certificates and a Mac
+  # App Store profile, uploaded to App Store Connect. Without those secrets the
+  # job is skipped and the GitHub release goes out alone. The upload itself
+  # also waits for the repository variable APP_STORE_UPLOAD=true. Submitting the
+  # uploaded build for review stays scripts/app-store/submit.rb.
+  app-store:
+    name: 🍎 Mac App Store upload
+    needs: test
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      ENABLED: ${{ secrets.MAS_DIST_CERT_P12 != '' && secrets.MAS_PROVISION_PROFILE != '' && secrets.ASC_KEY_P8 != '' }}
+    steps:
+      - name: Skip without the App Store secrets
+        if: env.ENABLED != 'true'
+        run: echo "::notice::MAS_DIST_CERT_P12, MAS_PROVISION_PROFILE or ASC_KEY_P8 is not set, no App Store upload (docs/app-store.md)"
+
+      - uses: actions/checkout@v7
+        if: env.ENABLED == 'true'
+        with:
+          fetch-depth: 0   # the build number depends on it
+
+      - name: Set up Xcode
+        if: env.ENABLED == 'true'
+        uses: ./.github/actions/setup-xcode
+
+      - name: Compute version numbers
+        if: env.ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          echo "BUILD=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "MARKETING=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "MARKETING=$(git describe --tags --abbrev=0 --match 'v*' | sed 's/^v//')" >> "$GITHUB_ENV"
+          fi
+
+      # Both identities in one throwaway keychain: the login keychain is locked
+      # on a runner and codesign would wait for a password nobody will type.
+      - name: Import the distribution certificates
+        if: env.ENABLED == 'true'
+        env:
+          MAS_DIST_CERT_P12: ${{ secrets.MAS_DIST_CERT_P12 }}
+          MAS_DIST_CERT_PASSWORD: ${{ secrets.MAS_DIST_CERT_PASSWORD }}
+          MAS_INSTALLER_CERT_P12: ${{ secrets.MAS_INSTALLER_CERT_P12 }}
+          MAS_INSTALLER_CERT_PASSWORD: ${{ secrets.MAS_INSTALLER_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/stats-mas.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          import_p12() {
+            local cert="$RUNNER_TEMP/$1.p12"
+            printf '%s' "$2" | base64 -d > "$cert"
+            security import "$cert" -P "$3" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+            rm -f "$cert"
+          }
+          import_p12 distribution "$MAS_DIST_CERT_P12" "$MAS_DIST_CERT_PASSWORD"
+          import_p12 installer "$MAS_INSTALLER_CERT_P12" "$MAS_INSTALLER_CERT_PASSWORD"
+          security set-key-partition-list -S apple-tool:,apple:,productbuild: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # Split on purpose: one argument per keychain already in the list.
+          # shellcheck disable=SC2046
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | sed 's/["[:space:]]//g')
+          security find-identity -v "$KEYCHAIN"
+
+      # scripts/build-app-store.sh embeds the profile and reads the team and
+      # application identifiers from it: a renewed one only needs the secret
+      # replaced.
+      - name: Install the Mac App Store provisioning profile
+        if: env.ENABLED == 'true'
+        env:
+          MAS_PROVISION_PROFILE: ${{ secrets.MAS_PROVISION_PROFILE }}
+        run: |
+          set -euo pipefail
+          PROFILE="$RUNNER_TEMP/stats.provisionprofile"
+          printf '%s' "$MAS_PROVISION_PROFILE" | base64 -d > "$PROFILE"
+          echo "MAS_PROFILE=$PROFILE" >> "$GITHUB_ENV"
+
+      - name: Build and sign the App Store package
+        if: env.ENABLED == 'true'
+        run: scripts/build-app-store.sh
+
+      # A manual run proves the build and the signature without spending a
+      # build number on App Store Connect: only a tag uploads.
+      - name: Upload to App Store Connect
+        # Off until the repository variable APP_STORE_UPLOAD is "true": while a
+        # version is in review, a tag must not rename or replace it.
+        if: env.ENABLED == 'true' && startsWith(github.ref, 'refs/tags/v') && vars.APP_STORE_UPLOAD == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          # The build must match the version it goes to: give the App Store
+          # version the tag's number first.
+          ruby scripts/app-store/version.rb "$MARKETING"
+          xcrun altool --upload-app --type macos \
+            --file build/app-store/Stats.pkg \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+          echo "::notice::Stats $MARKETING ($BUILD) uploaded to App Store Connect"
