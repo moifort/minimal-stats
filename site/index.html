@@ -41,7 +41,7 @@
       if (lang !== "fr") document.documentElement.classList.add("i18n-pending");
     })();
   </script>
-  <link rel="stylesheet" href="style.css?v=20261111-3">
+  <link rel="stylesheet" href="style.css?v=20261111-5">
 </head>
 <body>
 
@@ -123,7 +123,7 @@
     <p class="section-lead" data-i18n="feat.lead">Toujours visibles, jamais encombrants&nbsp;: en noir et blanc comme la barre des menus, en clair comme en sombre.</p>
 
     <div class="bento">
-      <article class="card wide">
+      <article class="card wide full">
         <div class="card-visual"><canvas class="big-widget" data-widget="cpu" width="360" height="160" aria-hidden="true"></canvas></div>
         <h3 data-i18n="cpu.title">Processeur</h3>
         <p data-i18n="cpu.text">Les cinq dernières minutes en continu, sur une échelle fixe de 0 à 100&nbsp;%&nbsp;: un pic se voit tout de suite, et ne se confond jamais avec un Mac au repos.</p>
@@ -141,21 +141,14 @@
         <p data-i18n="mem.text">Une jauge remplie à la part de mémoire utilisée, comptée comme dans le Moniteur d'activité.</p>
       </article>
 
-      <article class="card">
+      <article class="card fill">
         <div class="card-visual"><canvas class="big-widget" data-widget="disk" width="160" height="160" aria-hidden="true"></canvas></div>
         <h3 data-i18n="disk.title">Disque</h3>
         <p data-i18n="disk.text">La place occupée sur le disque de démarrage. L'espace purgeable compte comme libre, comme dans le Finder.</p>
       </article>
 
-      <article class="card">
-        <div class="card-visual">
-          <div class="shortcut" aria-hidden="true"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>S</kbd></div>
-        </div>
-        <h3 data-i18n="key.title">Au clavier</h3>
-        <p data-i18n="key.text"><kbd>⌃⌥⌘S</kbd> ouvre le détail depuis n'importe quelle app, <kbd>esc</kbd> le referme.</p>
-      </article>
 
-      <article class="card wide">
+      <article class="card wide full">
         <div class="card-visual">
           <div class="group-demo" aria-hidden="true">
             <div class="group-row lead"><span>Claude</span><em>14.8%</em></div>
@@ -169,15 +162,6 @@
         <p data-i18n="apps.text">Le détail classe les cinq apps qui pèsent le plus, en processeur, mémoire, réseau ou disque. Chacune compte tout ce qu'elle a lancé&nbsp;: ses assistants, ses outils, ses terminaux. Vos propres apps se quittent d'un clic.</p>
       </article>
 
-      <article class="card">
-        <div class="card-visual">
-          <div class="quiet-demo" aria-hidden="true">
-            <span class="dock"><i></i><i></i><i></i><i class="gap"></i></span>
-          </div>
-        </div>
-        <h3 data-i18n="quiet.title">Discret</h3>
-        <p data-i18n="quiet.text">Pas de fenêtre, pas d'icône dans le Dock. Stats s'ouvre à la connexion, se met à jour tout seul et se fait oublier.</p>
-      </article>
     </div>
   </section>
 
@@ -197,7 +181,7 @@
         <p data-i18n="inst.brew.text">Une commande dans le Terminal&nbsp;:</p>
         <p><code class="copy">brew install --cask moifort/tap/minimal-stats</code></p>
       </article>
-      <article class="card">
+      <article class="card fill">
         <h3 data-i18n="inst.src.title">Depuis les sources</h3>
         <p data-i18n="inst.src.text">Avec les outils en ligne de commande de Xcode&nbsp;:</p>
         <p><code class="copy">git clone https://github.com/moifort/minimal-stats<br>cd minimal-stats &amp;&amp; make install</code></p>
@@ -212,7 +196,7 @@
       <a class="store-badge" href="#" rel="noopener" aria-label="Télécharger dans le Mac App Store" data-i18n-aria="aria.store" data-app-store hidden>
         <img src="badges/fr.svg" height="50" alt="" data-store-badge>
       </a>
-      <a class="button ghost" href="https://github.com/moifort/minimal-stats" rel="noopener" data-i18n="dl.code">Voir le code</a>
+      <a class="button ghost" href="https://github.com/moifort/minimal-stats" rel="noopener"><svg class="github-mark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
     </div>
     <p class="hero-meta" data-i18n="dl.meta"><span data-version>Dernière version</span> · macOS 26 · Apple Silicon</p>
   </section>
@@ -255,6 +239,6 @@
   <p><a href="https://github.com/moifort/minimal-stats/releases" data-i18n="footer.releases">Toutes les versions</a> · <a href="https://github.com/moifort/minimal-stats/issues" data-i18n="footer.issues">Signaler un problème</a> · <a href="https://github.com/moifort/minimal-stats#readme" data-i18n="footer.docs">Documentation</a> · <a href="privacy.html" data-i18n="footer.privacy">Confidentialité</a></p>
 </footer>
 
-<script src="i18n.js?v=20261111-3"></script>
+<script src="i18n.js?v=20261111-5"></script>
 </body>
 </html>
